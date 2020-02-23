@@ -91,11 +91,11 @@ usage(){
     echo -e "\t-i <Number of commits to show>\tShows informations."
     echo
     echo -e "\tExamples : "
-    echo -e "\t\t./$0 -r ~/isrm-portal-conf/ -b stable -u -i 5"
+    echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -u -i 5"
     echo -e "\t\tCheckout the stable branch, pull changes and show infos of the repository (last 5 commits)."
-    echo -e "\t\t./$0 -r ~/isrm-portal-conf/ -b stable -t 00a3a3f"
+    echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -t 00a3a3f"
     echo -e "\t\tCheckout the stable branch and hard reset the repository to the specified commit."
-    echo -e "\t\t./$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u "
+    echo -e "\t\t$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u "
     echo -e "\t\tInit a repo and pull master by default. Use the specified SSH to authenticate."
     echo
     echo -e "\tError codes : "
