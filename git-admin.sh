@@ -106,15 +106,19 @@ usage(){
 }
 
 git_ssh(){
+    return_val=-1
     if [[ ! -z "$2" ]]; then
         echo "[INFO] Using SSH key"
+        git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
         ssh-agent bash -c "ssh-add $2 && $1"
-        return $?
+        return_val=$?
+        git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
         echo "[INFO] SSH key not set"
         bash -c $1
-        return $?
+        return_val=$?
     fi
+    return $return_val
 }
 
 host=`hostname`
@@ -158,9 +162,8 @@ while getopts ":hk:c:r:b:ut:i:" arg; do
                         cd `basename ${folder}`
 
                         git init
-                        git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
                         git remote add -t master origin ${git_clone_url} 
-                
+
                         git_ssh "git remote update" "${ssh_key}"
                         git_ssh "git branch -a -vv" "${ssh_key}"
                     else
@@ -216,7 +219,6 @@ while getopts ":hk:c:r:b:ut:i:" arg; do
 
                     if [[ $local_changes -eq 1 ]]; then
                         echo "[INFO] Pushing changes"
-                        # git push 2>/dev/null || echo "[INFO] Using SSH key" && ssh-agent bash -c "ssh-add ${ssh_key} > /dev/null 2>&1 && git push 2>&1" 
                         git_ssh "git push" "${ssh_key}"
                     fi
                     cd "${init_folder}"
