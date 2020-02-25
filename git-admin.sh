@@ -131,10 +131,11 @@ init_folder=`pwd`
 generateTitle "Administration on ${host}"
 generateSubTitle "PWD ${init_folder}"
 
-while getopts ":hk:c:r:b:ut:i:" arg; do
+while getopts ":hk:c:r:b:t:ui:" arg; do
     case "${arg}" in
         h) #Print help
             usage
+            exit
             ;;
         k)
             ssh_key=${OPTARG}
@@ -193,7 +194,24 @@ while getopts ":hk:c:r:b:ut:i:" arg; do
                 exit 1
             fi
             ;;
-
+        t) #Reseting to previous commit
+            generateTitle "Reseting to previous commit"
+            if [ "$repositoryIsSet" = true ]; then
+                for folder in ${repositories}; do
+                    
+                    echo "[INFO] Reseting ${folder} to ${OPTARG} commit"
+                    cd $folder
+                    git reset --hard ${OPTARG}
+                    cd "${init_folder}"
+                    break
+                done
+                generateTitle "End (reset)"
+                exit
+            else
+                echo "[ERROR] You need to set the repository to reset branch"
+                exit 1
+            fi
+            ;;
         u) #Update
             generateTitle "Updates(s)"
             if [ "$repositoryIsSet" = true ]; then
@@ -227,24 +245,6 @@ while getopts ":hk:c:r:b:ut:i:" arg; do
                 done
             else
                 echo "[ERROR] You need to set the repository to update"
-                exit 1
-            fi
-            ;;
-        t)
-            generateTitle "Reseting to previous commit"
-            if [ "$repositoryIsSet" = true ]; then
-
-                for folder in ${repositories}; do
-                    
-                    echo "[INFO] Reseting ${folder} to ${OPTARG} commit"
-                    cd $folder
-                    git reset --hard ${OPTARG}
-                    cd "${init_folder}"
-                    break
-                done
-                
-            else
-                echo "[ERROR] You need to set the repository to reset branch"
                 exit 1
             fi
             ;;
