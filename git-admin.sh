@@ -126,8 +126,10 @@ repositoryIsSet=false
 repositories=()
 ssh_key=""
 git_clone_url=""
+init_folder=`pwd`
 
 generateTitle "Administration on ${host}"
+generateSubTitle "PWD ${init_folder}"
 
 while getopts ":hk:c:r:b:ut:i:" arg; do
     case "${arg}" in
@@ -147,7 +149,7 @@ while getopts ":hk:c:r:b:ut:i:" arg; do
             
             repositories=${OPTARG}
             for folder in ${repositories}; do
-                init_folder=`pwd`
+                
                 generateSubTitle "$folder"
 
                 if [[ -d "$folder" ]]; then
@@ -180,7 +182,7 @@ while getopts ":hk:c:r:b:ut:i:" arg; do
             generateTitle "Checkout(s)"
             if [ "$repositoryIsSet" = true ]; then
                 for folder in ${repositories}; do
-                    init_folder=`pwd`
+                    
                     generateSubTitle "Checkout ${folder}"
                     cd $folder
                     git checkout ${OPTARG}
@@ -196,7 +198,7 @@ while getopts ":hk:c:r:b:ut:i:" arg; do
             generateTitle "Updates(s)"
             if [ "$repositoryIsSet" = true ]; then
                 for folder in ${repositories}; do
-                    init_folder=`pwd`
+                    
                     cd $folder
                     generateSubTitle "Update ${folder}"
                     local_changes=0
@@ -233,7 +235,7 @@ while getopts ":hk:c:r:b:ut:i:" arg; do
             if [ "$repositoryIsSet" = true ]; then
 
                 for folder in ${repositories}; do
-                    init_folder=`pwd`
+                    
                     echo "[INFO] Reseting ${folder} to ${OPTARG} commit"
                     cd $folder
                     git reset --hard ${OPTARG}
@@ -251,7 +253,7 @@ while getopts ":hk:c:r:b:ut:i:" arg; do
             if [ "$repositoryIsSet" = true ]; then
 
                 for folder in ${repositories}; do
-                    init_folder=`pwd`
+                    
                     cd $folder
                     generateSubTitle "Last ${OPTARG} commits activity ${folder}"
                     git --no-pager log -n ${OPTARG} --graph
