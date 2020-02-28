@@ -47,7 +47,7 @@ function generateTitle() {
     generateText ""
     echo "$line"
 }
-### END CODE COPIED ###
+### END CODE COPIED ### Thanks
 
 #Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
