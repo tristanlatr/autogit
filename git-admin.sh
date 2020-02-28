@@ -61,17 +61,6 @@ function generateTitle() {
 set -euo pipefail
 IFS=$'\n\t,'
 
-#FUNCTIONS
-
-#updateFromMaster() {
-    #See https://stackoverflow.com/questions/1214906/how-do-i-merge-a-sub-directory-in-git
-    #git pull --no-edit --no-commit
-    #git merge -s ours --no-commit origin/${_REMOTE_BRANCH} ${_LOCAL_BRANCH}
-    #git rm --quiet -rf .
-    #git read-tree --prefix=${_GIT_SUBDIR} -u origin/${_REMOTE_BRANCH}:${_GIT_SUBDIR}
-    #echo none
-#}
-
 usage(){
     generateTitle "Usage"
     echo "Usage: $0 [-h] [-k <Key auth for git repo>] [-c <git remote URL>] (-r <Repositorie(s) path(s)>) [-b <Branch>] [-u <Strategy>] [-t <Commit hash>] [-i <Number of commits to show>]" | fold -s
