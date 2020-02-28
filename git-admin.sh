@@ -207,7 +207,7 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
 
                         if [[ "${strategy}" =~ "add-untracked" ]]; then
                             echo "[INFO] Adding untracked files"
-                            git add --intent-to-add .
+                            git add .
                         fi
                         echo "[INFO] Locally changed files:"
                         git status -s
@@ -221,7 +221,7 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                                 local_changes=1
                             fi
 
-                        elif [[ "${strategy}" == "stash" ]];then
+                        elif [[ "${strategy}" =~ "stash" ]];then
                             # If unstaged changes in the working tree
                             if ! git diff-files --quiet --ignore-submodules --
                             then
