@@ -212,7 +212,8 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                             git commit -a -m "Local changes - automatic commit $(date)"
                             local_changes=1
                         elif [[ "${strategy}" == "stash" ]];then
-                            echo "[INFO] Saving changes as a git stash, please apply stash manually if you need so."
+                            echo "[WARNING] The changes will be rolled back and not merge with the remote git server."
+                            echo "[INFO] Saving changes as a git stash, please apply stash manually with 'git stash pop' if you need."
                             git stash save "Local changes $(date)"
                         else
                             echo "[ERROR] please use '-u <merge/stash>'"
