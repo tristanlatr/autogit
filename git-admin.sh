@@ -216,11 +216,11 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                         echo "[INFO] Locally changed files:"
                         echo "$diff"
                         strategy=${OPTARG}
-                        if [[ "${strategy}"=="merge" ]]; then
+                        if [[ "${strategy}" == "merge" ]]; then
                             echo "[INFO] Merging changes"
                             git commit -a -m "Local changes - automatic commit $(date)"
                             local_changes=1
-                        elif [[ "${strategy}"=="stash" ]];then
+                        elif [[ "${strategy}" == "stash" ]];then
                             echo "[INFO] Saving changes as a git stash, please apply stash manually if you need so."
                             git stash save "Local changes $(date)"
                         else
