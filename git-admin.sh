@@ -79,11 +79,12 @@ usage(){
     echo -e "\t\t$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u " | fold -s
     echo -e "\t\tInit a repo and pull master by default. Use the specified SSH to authenticate." | fold -s
     echo
-    echo -e "\tError codes : "
-    echo -e "\t\t1 Repository not set"
+    echo -e "\tReturn codes : "
+    echo -e "\t\t1 Other errors"
     echo -e "\t\t2 Git pull failed"
     echo -e "\t\t3 Syntax mistake"
     echo -e "\t\t4 Git reposirtory does't exist and -c URL is not set"
+    echo -e "\t\t5 Repository not set"
 }
 
 git_ssh(){
@@ -172,7 +173,7 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                 done
             else
                 echo "[ERROR] You need to set the repository to checkout a branch"
-                exit 1
+                exit 5
             fi
             ;;
         t) #Reseting to previous commit
@@ -190,7 +191,7 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                 exit
             else
                 echo "[ERROR] You need to set the repository to reset branch"
-                exit 1
+                exit 5
             fi
             ;;
         u) #Update
@@ -238,7 +239,7 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                 done
             else
                 echo "[ERROR] You need to set the repository to update"
-                exit 1
+                exit 5
             fi
             ;;
         i) #Show git log -> To have the commits sha1
@@ -260,7 +261,7 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
 
             else
                 echo "[ERROR] You need to set the repository to show information"
-                exit 1
+                exit 5
             fi
             ;;
         *)
