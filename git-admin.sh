@@ -1,18 +1,15 @@
 #!/bin/bash
 
 ### CODE COPIED ###
-
 # menu.sh
 # Description: Bash menu generator
 # Created by Jamie Cruwys on 21/02/2014.
-
 # Configuration
 symbol="*"
 paddingSymbol=" "
 lineLength=70
 charsToOption=1
 charsToName=3
-
 function generatePadding() {
     string="";
     for (( i=0; i < $2; i++ )); do
@@ -20,13 +17,11 @@ function generatePadding() {
     done
     echo "$string";
 }
-
 # Generated configs
 remainingLength=$(( $lineLength - 2 ));
 line=$(generatePadding "${symbol}" "${lineLength}");
 toOptionPadding=$(generatePadding "${paddingSymbol}" "${charsToOption}");
 toNamePadding=$(generatePadding "$paddingSymbol" "$charsToName");
-
 # generateText (text)
 function generateText() {
     totalCharsToPad=$((remainingLength - ${#1}));
@@ -39,13 +34,11 @@ function generateText() {
         echo "${symbol}${padding}${1}${padding}${symbol}";
     fi
 }
-
 function generateSubTitle() {  
     echo "$line"
     generateText "$1"
     echo "$line"
 }
-
 # generateTitle (title)
 function generateTitle() {  
     echo "$line"
@@ -55,8 +48,6 @@ function generateTitle() {
     echo "$line"
 }
 ### END CODE COPIED ###
-
-#Some comments here
 
 #Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
