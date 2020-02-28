@@ -107,12 +107,13 @@ repositoryIsSet=false
 repositories=()
 ssh_key=""
 git_clone_url=""
+commit_msg_file=""
 init_folder=`pwd`
 
 generateTitle "Administration on ${host}"
 generateSubTitle "PWD ${init_folder}"
 
-while getopts ":hk:c:r:b:t:u:i:" arg; do
+while getopts ":hk:c:r:b:f:t:u:i:" arg; do
     case "${arg}" in
         h) #Print help
             usage
@@ -175,6 +176,12 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                 exit 5
             fi
             ;;
+
+        f)
+            commit_msg_file=${OPTARG}
+            generateSubTitle "Commit message file set : ${commit_msg_file}"
+            ;;
+
         t) #Reseting to previous commit
             generateTitle "Reseting to previous commit"
             if [ "$repositoryIsSet" = true ]; then
@@ -217,7 +224,11 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                             if ! git diff-files --quiet --ignore-submodules --
                             then
                                 echo "[INFO] Merging changes"
-                                git commit -a -m "Local changes - automatic commit $(date)"
+                                if [[ -n "${commit_msg_file}" ]]; then
+                                    git commit -a -F "${commit_msg_file}"
+                                else
+                                    git commit -a -m "Local changes - automatic commit $(date)"
+                                fi
                                 local_changes=1
                             fi
 
