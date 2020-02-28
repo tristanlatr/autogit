@@ -74,29 +74,29 @@ IFS=$'\n\t,'
 
 usage(){
     generateTitle "Usage"
-        echo "Usage: $0 [-h] [-k <Key auth for git repo>] [-c <git remote URL>] (-r <Repositorie(s) path(s)>) [-b <Branch>] [-u] [-t <Commit hash>] [-i <Number of commits to show>]" 1>&2
+    echo "Usage: $0 [-h] [-k <Key auth for git repo>] [-c <git remote URL>] (-r <Repositorie(s) path(s)>) [-b <Branch>] [-u <Strategy>] [-t <Commit hash>] [-i <Number of commits to show>]" | fold -s
     echo
-    echo "This script is designed to manage versionning git repository."
-    echo "VERY IMPORTANT. Arguments should be passed to the script in the same order they are listed in this"
-    echo "message to avoid unexpected behaviours."
+    echo "This script is designed to manage versionning git repository." | fold -s
+    echo "VERY IMPORTANT. Arguments should be passed to the script in the same order they are listed in this" | fold -s
+    echo "message to avoid unexpected behaviours." | fold -s
     echo
-    echo -e "\t-h\t\tPrint this help message."
-    echo -e "\t-k <Key>\tPath to a trusted ssh key to authenticate against the git server (push). Required if git authentication is not already working with default key."
-    echo -e "\t-c <Url>\tURL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several reposities, the same URL will used for all. Multiple repo values are not supported by this feature."
-    echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Warning make sure all repositories exists., multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone Required."
-    echo -e "\t-b <Branch>\tSwitch to the specified branch or tag."
-    echo -e "\t\t\tBranch must already exist in the local repository copy (run git checkout origin/branch from the host before)."
-    echo -e "\t-u\t\tUpdate the current branch from and to upstream. (commit, pull and push). This feature supports multiple repo values !"
-    echo -e "\t-t <CommitSAH1>\tHard reset the FIRST local branch to the specified commit.  Multiple repo values are not supported by this feature"
-    echo -e "\t-i <Number of commits to show>\tShows informations."
+    echo -e "\t-h\t\tPrint this help message." | fold -s
+    echo -e "\t-k <Key>\tPath to a trusted ssh key to authenticate against the git server (push). Required if git authentication is not already working with default key." | fold -s
+    echo -e "\t-c <Url>\tURL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several reposities, the same URL will used for all. Multiple repo values are not supported by this feature." | fold -s
+    echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Warning make sure all repositories exists., multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone Required." | fold -s
+    echo -e "\t-b <Branch>\tSwitch to the specified branch or tag." | fold -s
+    echo -e "\t\t\tBranch must already exist in the local repository copy (run git checkout origin/branch from the host before)." | fold -s
+    echo -e "\t-u <'merge','stash'>\t\tUpdate the current branch from and to upstream, can adopt 2 strategies. 'merge' -> (commit, pull and push) Require a writable git repo with valid authentication. 'stash' -> (stash the changes and pull). This feature supports multiple repo values !" | fold -s
+    echo -e "\t-t <CommitSAH1>\tHard reset the FIRST local branch to the specified commit.  Multiple repo values are not supported by this feature" | fold -s
+    echo -e "\t-i <Number of commits to show>\tShows informations." | fold -s
     echo
-    echo -e "\tExamples : "
-    echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -u -i 5"
-    echo -e "\t\tCheckout the stable branch, pull changes and show infos of the repository (last 5 commits)."
-    echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -t 00a3a3f"
-    echo -e "\t\tCheckout the stable branch and hard reset the repository to the specified commit."
-    echo -e "\t\t$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u "
-    echo -e "\t\tInit a repo and pull master by default. Use the specified SSH to authenticate."
+    echo -e "\tExamples : " | fold -s
+    echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -u -i 5" | fold -s
+    echo -e "\t\tCheckout the stable branch, pull changes and show infos of the repository (last 5 commits)." | fold -s
+    echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -t 00a3a3f" | fold -s
+    echo -e "\t\tCheckout the stable branch and hard reset the repository to the specified commit." | fold -s
+    echo -e "\t\t$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u " | fold -s
+    echo -e "\t\tInit a repo and pull master by default. Use the specified SSH to authenticate." | fold -s
     echo
     echo -e "\tError codes : "
     echo -e "\t\t1 Repository not set"
@@ -131,7 +131,7 @@ init_folder=`pwd`
 generateTitle "Administration on ${host}"
 generateSubTitle "PWD ${init_folder}"
 
-while getopts ":hk:c:r:b:t:ui:" arg; do
+while getopts ":hk:c:r:b:t:u:i:" arg; do
     case "${arg}" in
         h) #Print help
             usage
@@ -221,11 +221,22 @@ while getopts ":hk:c:r:b:t:ui:" arg; do
                     generateSubTitle "Update ${folder}"
                     local_changes=0
                     diff=`git diff`
+
                     if [[ -n "$diff" ]]; then
                         echo "[INFO] Locally changed files:"
                         echo "$diff"
-                        git commit -a -m "Local changes - automatic commit $(date)"
-                        local_changes=1
+                        strategy=${OPTARG}
+                        if [[ "${strategy}"=="merge" ]]; then
+                            echo "[INFO] Merging changes"
+                            git commit -a -m "Local changes - automatic commit $(date)"
+                            local_changes=1
+                        elif [[ "${strategy}"=="stash" ]];then
+                            echo "[INFO] Saving changes as a git stash, please apply stash manually if you need so."
+                            git stash save "Local changes $(date)"
+                        else
+                            echo "[ERROR] please use '-u <merge/stash>'"
+                            exit 3
+                        fi
                     fi
 
                     set +e
