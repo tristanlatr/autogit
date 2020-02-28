@@ -51,7 +51,7 @@ function generateTitle() {
 
 #Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
-IFS=$'\n\t, '
+IFS=$'\n\t,'
 
 usage(){
     generateTitle "Usage"
@@ -202,26 +202,26 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                     generateSubTitle "Update ${folder}"
                     local_changes=0
                     strategy=${OPTARG}
+                    git_status=`git status -s`
+                    if [[ -n ${git_status} ]]; then
 
-                    if [[ "${strategy}" =~ "add-untracked" ]]; then
-                        echo "[INFO] Adding untracked files"
-                        git add --intent-to-add .
-                    fi
-
-                    diff=`git diff origin/master -- .`
-
-                    if [[ -n "$diff" ]]; then
+                        if [[ "${strategy}" =~ "add-untracked" ]]; then
+                            echo "[INFO] Adding untracked files"
+                            git add --intent-to-add .
+                        fi
                         echo "[INFO] Locally changed files:"
-                        echo "$diff"
+                        echo "$git_status"
                 
                         if [[ "${strategy}" =~ "merge" ]]; then
                             echo "[INFO] Merging changes"
                             git commit -a -m "Local changes - automatic commit $(date)"
                             local_changes=1
+
                         elif [[ "${strategy}" == "stash" ]];then
                             echo "[WARNING] The changes will be rolled back and not merge with the remote git server."
                             echo "[INFO] Saving changes as a git stash, please apply stash manually with 'git stash pop' if you need."
                             git stash save "Local changes $(date)"
+
                         else
                             echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos."
                             exit 3
