@@ -201,16 +201,19 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                     cd $folder
                     generateSubTitle "Update ${folder}"
                     local_changes=0
-                    diff=`git diff origin/master -- ./`
+                    strategy=${OPTARG}
+
+                    if [[ "${strategy}" =~ "add-untracked" ]]; then
+                        echo "[INFO] Adding untracked files"
+                        git add --intent-to-add .
+                    fi
+
+                    diff=`git diff origin/master -- .`
 
                     if [[ -n "$diff" ]]; then
                         echo "[INFO] Locally changed files:"
                         echo "$diff"
-                        strategy=${OPTARG}
-                        if [[ "${strategy}" == "add-untracked-merge" ]]; then
-                            echo "[INFO] Adding untracked files"
-                            git add .
-                        fi
+                
                         if [[ "${strategy}" =~ "merge" ]]; then
                             echo "[INFO] Merging changes"
                             git commit -a -m "Local changes - automatic commit $(date)"
@@ -220,7 +223,7 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                             echo "[INFO] Saving changes as a git stash, please apply stash manually with 'git stash pop' if you need."
                             git stash save "Local changes $(date)"
                         else
-                            echo "[ERROR] please use '-u <merge/stash/add-untracked-merge>'"
+                            echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos."
                             exit 3
                         fi
                     fi
