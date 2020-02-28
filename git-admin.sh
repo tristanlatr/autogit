@@ -127,6 +127,11 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
             git_clone_url=${OPTARG}
             generateSubTitle "Git clone URL set ${git_clone_url}"
             ;;
+
+        f)
+            commit_msg_file=${OPTARG}
+            generateSubTitle "Commit message file set : ${commit_msg_file}"
+            ;;
         r)
             generateTitle "Repositorie(s)"
             
@@ -177,11 +182,6 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
             fi
             ;;
 
-        f)
-            commit_msg_file=${OPTARG}
-            generateSubTitle "Commit message file set : ${commit_msg_file}"
-            ;;
-
         t) #Reseting to previous commit
             generateTitle "Reseting to previous commit"
             if [ "$repositoryIsSet" = true ]; then
@@ -225,7 +225,7 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                             then
                                 echo "[INFO] Merging changes"
                                 if [[ -n "${commit_msg_file}" ]]; then
-                                    git commit -a -F "${commit_msg_file}"
+                                    git commit -a -m "Local changes - automatic commit $(date)" -m "${commit_msg_file}"
                                 else
                                     git commit -a -m "Local changes - automatic commit $(date)"
                                 fi
