@@ -66,7 +66,7 @@ usage(){
     echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Warning make sure all repositories exists., multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone Required." | fold -s
     echo -e "\t-b <Branch>\tSwitch to the specified branch or tag." | fold -s
     echo -e "\t\t\tBranch must already exist in the local repository copy (run git checkout origin/branch from the host before)." | fold -s
-    echo -e "\t-u <'merge','stash'>\t\tUpdate the current branch from and to upstream, can adopt 2 strategies. 'merge' -> (commit, pull and push) Require a writable git repo with valid authentication. 'stash' -> (stash the changes and pull). This feature supports multiple repo values !" | fold -s
+    echo -e "\t-u <Strategy>\t\tUpdate the current branch from and to upstream, can adopt 3 strategies. 'merge' -> (commit, pull and push) Require a writable git repo with valid authentication. 'stash' -> (stash the changes and pull). 'add-untracked-merge' -> (add git untracked files, dangerous, and merge) This feature supports multiple repo values !" | fold -s
     echo -e "\t-t <CommitSAH1>\tHard reset the FIRST local branch to the specified commit.  Multiple repo values are not supported by this feature" | fold -s
     echo -e "\t-i <Number of commits to show>\tShows informations." | fold -s
     echo
@@ -207,7 +207,11 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                         echo "[INFO] Locally changed files:"
                         echo "$diff"
                         strategy=${OPTARG}
-                        if [[ "${strategy}" == "merge" ]]; then
+                        if [[ "${strategy}" == "add-untracked-merge" ]]; then
+                            echo "[INFO] Adding untracked files"
+                            git add .
+                        fi
+                        if [[ "${strategy}" =~ "merge" ]]; then
                             echo "[INFO] Merging changes"
                             git commit -a -m "Local changes - automatic commit $(date)"
                             local_changes=1
@@ -216,7 +220,7 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                             echo "[INFO] Saving changes as a git stash, please apply stash manually with 'git stash pop' if you need."
                             git stash save "Local changes $(date)"
                         else
-                            echo "[ERROR] please use '-u <merge/stash>'"
+                            echo "[ERROR] please use '-u <merge/stash/add-untracked-merge>'"
                             exit 3
                         fi
                     fi
