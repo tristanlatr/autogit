@@ -58,8 +58,7 @@ usage(){
     echo "Usage: $0 [-h] [-k <Key auth for git repo>] [-c <git remote URL>] (-r <Repositorie(s) path(s)>) [-b <Branch>] [-u <Strategy>] [-t <Commit hash>] [-i <Number of commits to show>]" | fold -s
     echo
     echo "This script is designed to manage versionning git repository." | fold -s
-    echo "VERY IMPORTANT. Arguments should be passed to the script in the same order they are listed in this" | fold -s
-    echo "message to avoid unexpected behaviours." | fold -s
+    echo "VERY IMPORTANT. Arguments should be passed to the script in the same order they are listed in this message to avoid unexpected behaviours." | fold -s
     echo
     echo -e "\t-h\t\tPrint this help message." | fold -s
     echo -e "\t-k <Key>\tPath to a trusted ssh key to authenticate against the git server (push). Required if git authentication is not already working with default key." | fold -s
