@@ -56,6 +56,7 @@ function generateTitle() {
 }
 ### END CODE COPIED ###
 
+#Some comments here
 
 #Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
@@ -209,7 +210,7 @@ while getopts ":hk:c:r:b:t:u:i:" arg; do
                     cd $folder
                     generateSubTitle "Update ${folder}"
                     local_changes=0
-                    diff=`git diff`
+                    diff=`git diff origin/master -- ./`
 
                     if [[ -n "$diff" ]]; then
                         echo "[INFO] Locally changed files:"
