@@ -73,12 +73,6 @@ usage(){
     echo -e "\t\t5 Repository not set"
 }
 
-mistake(){
-    generateTitle "Syntax mistake"
-    echo "[ERROR] You made a syntax mistake calling the script. Please see '$0 -h' for more infos."
-    exit 3
-}
-
 git_ssh(){
     return_val=-1
     if [[ ! -z "$2" ]]; then
@@ -108,6 +102,23 @@ generateTitle "git-admin on ${host}"
 
 while getopts "${optstring}" arg; do
     case "${arg}" in
+        h) ;;
+        k) ;;
+        c) ;;
+        f) ;;
+        r) ;;
+        b) ;;
+        t) ;;
+        u) ;;
+        i) ;;
+        *)
+            echo "[ERROR] You made a syntax mistake calling the script. Please see '$0 -h' for more infos." | fold -s
+            exit 3
+    esac
+done
+OPTIND=1
+while getopts "${optstring}" arg; do
+    case "${arg}" in
         h) #Print help
             usage
             exit
@@ -130,8 +141,6 @@ while getopts "${optstring}" arg; do
             commit_msg_file=${OPTARG}
             generateTitle "Commit message file set : ${commit_msg_file}"
             ;;
-        # *)
-        #     mistake
     esac
 done
 OPTIND=1
@@ -168,9 +177,6 @@ while getopts "${optstring}" arg; do
             done
             repositoryIsSet=true
             ;;
-        # *)
-        #     mistake
-
     esac
 done
 OPTIND=1
@@ -192,8 +198,6 @@ while getopts "${optstring}" arg; do
                 exit 5
             fi
             ;;
-        # *)
-        #     mistake
     esac
 done
 OPTIND=1
@@ -212,8 +216,6 @@ while getopts "${optstring}" arg; do
                 exit 5
             fi
             ;;
-        # *)
-        #     mistake
     esac
 done
 OPTIND=1
@@ -299,8 +301,6 @@ while getopts "${optstring}" arg; do
                 exit 5
             fi
             ;;
-        # *)
-        #     mistake
     esac
 done
 OPTIND=1
@@ -325,8 +325,6 @@ while getopts "${optstring}" arg; do
                 exit 5
             fi
             ;;
-        # *)
-        #     mistake
     esac
 done
 shift "$((OPTIND-1))"
