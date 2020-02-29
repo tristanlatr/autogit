@@ -1,11 +1,6 @@
 #!/bin/bash
 
-### CODE COPIED ### 321gbrfvedcw
-### CODE COPIED ### 123hngbfvdc
-# menu.sh
-# Description: Bash menu generator
-# Created by Jamie Cruwys on 21/02/2014.
-# Configuration
+# Titles
 symbol="*"
 paddingSymbol=" "
 lineLength=70
@@ -18,37 +13,22 @@ function generatePadding() {
     done
     echo "$string";
 }
-# Generated configs
 remainingLength=$(( $lineLength - 2 ));
 line=$(generatePadding "${symbol}" "${lineLength}");
-toOptionPadding=$(generatePadding "${paddingSymbol}" "${charsToOption}");
-toNamePadding=$(generatePadding "$paddingSymbol" "$charsToName");
 # generateText (text)
-function generateText() {
+function generateTitle() {
     totalCharsToPad=$((remainingLength - ${#1}));
     charsToPadEachSide=$((totalCharsToPad / 2));
     padding=$(generatePadding "$paddingSymbol" "$charsToPadEachSide");
     totalChars=$(( ${#symbol} + ${#padding} + ${#1} + ${#padding} + ${#symbol} ));
+    echo "$line"
     if [[ ${totalChars} < ${lineLength} ]]; then
         echo "${symbol}${padding}${1}${padding}${paddingSymbol}${symbol}";
     else
         echo "${symbol}${padding}${1}${padding}${symbol}";
     fi
-}
-function generateSubTitle() {  
-    echo "$line"
-    generateText "$1"
     echo "$line"
 }
-# generateTitle (title)
-function generateTitle() {  
-    echo "$line"
-    generateText ""
-    generateText "$1"
-    generateText ""
-    echo "$line"
-}
-### END CODE COPIED ### Thanks
 
 #Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
@@ -67,14 +47,13 @@ usage(){
     echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Warning make sure all repositories exists., multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone Required." | fold -s
     echo -e "\t-b <Branch>\tSwitch to the specified branch or tag." | fold -s
     echo -e "\t\t\tBranch must already exist in the local repository copy (run git checkout origin/branch from the host before)." | fold -s
-    echo -e "\t-u <Strategy>\t\tUpdate the current branch from and to upstream, can adopt 3 strategies. " | fold -s
+    echo -e "\t-u <Strategy>\t\tUpdate the current branch from and to upstream, can adopt 3 strategies. This feature supports multiple repo values !" | fold -s
     echo -e "\t\t'merge' -> commit, pull and push. Fail if merge fail. Require valid git server authentication." | fold -s
     echo -e "\t\t'stash' -> stash the changes and pull." | fold -s
     echo -e "\t\t'merge-or-stash' -> stash, commit, pull and push, if pull fails revert commit and pull. Require valid git server authentication." | fold -s
     echo -e "\t\t'add-untracked-merge' -> git add untracked files, and merge."
     echo -e "\t\t'add-untracked-stash' -> git add untracked files, stash the changes and pull." | fold -s
     echo -e "\t\t'add-untracked-merge-or-stash' -> git add untracked files, merge or stash changes. Require valid git server authentication." | fold -s
-    This feature supports multiple repo values !
     echo -e "\t-t <CommitSAH1>\tHard reset the FIRST local branch to the specified commit.  Multiple repo values are not supported by this feature" | fold -s
     echo -e "\t-i <Number of commits to show>\tShows informations." | fold -s
     echo
@@ -92,6 +71,12 @@ usage(){
     echo -e "\t\t3 Syntax mistake"
     echo -e "\t\t4 Git reposirtory does't exist and -c URL is not set"
     echo -e "\t\t5 Repository not set"
+}
+
+mistake(){
+    generateTitle "Syntax mistake"
+    echo "[ERROR] You made a syntax mistake calling the script. Please see '$0 -h' for more infos."
+    exit 3
 }
 
 git_ssh(){
@@ -117,36 +102,46 @@ ssh_key=""
 git_clone_url=""
 commit_msg_file=""
 init_folder=`pwd`
+optstring="hk:c:f:r:b:t:u:i:"
 
-generateTitle "Administration on ${host}"
-generateSubTitle "PWD ${init_folder}"
+generateTitle "git-admin on ${host}"
 
-while getopts ":hk:c:r:b:f:t:u:i:" arg; do
+while getopts "${optstring}" arg; do
     case "${arg}" in
         h) #Print help
             usage
             exit
             ;;
+    esac
+done
+OPTIND=1
+while getopts "${optstring}" arg; do
+    case "${arg}" in
         k)
             ssh_key=${OPTARG}
-            generateSubTitle "SSH key set ${ssh_key}"
+            generateTitle "SSH key set ${ssh_key}"
             ;;
         c)
             git_clone_url=${OPTARG}
-            generateSubTitle "Git clone URL set ${git_clone_url}"
+            generateTitle "Git clone URL set ${git_clone_url}"
             ;;
 
         f)
             commit_msg_file=${OPTARG}
-            generateSubTitle "Commit message file set : ${commit_msg_file}"
+            generateTitle "Commit message file set : ${commit_msg_file}"
             ;;
-        r)
-            generateTitle "Repositorie(s)"
-            
+        # *)
+        #     mistake
+    esac
+done
+OPTIND=1
+while getopts "${optstring}" arg; do
+    case "${arg}" in
+        r)            
             repositories=${OPTARG}
             for folder in ${repositories}; do
                 
-                generateSubTitle "$folder"
+                generateTitle "Repository $folder"
 
                 if [[ -d "$folder" ]]; then
                     cd $folder
@@ -173,29 +168,18 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
             done
             repositoryIsSet=true
             ;;
-        
-        b)
-            generateTitle "Checkout(s)"
-            if [ "$repositoryIsSet" = true ]; then
-                for folder in ${repositories}; do
-                    
-                    generateSubTitle "Checkout ${folder}"
-                    cd $folder
-                    git checkout ${OPTARG}
-                    cd "${init_folder}"
-                done
-            else
-                echo "[ERROR] You need to set the repository to checkout a branch"
-                exit 5
-            fi
-            ;;
+        # *)
+        #     mistake
 
+    esac
+done
+OPTIND=1
+while getopts "${optstring}" arg; do
+    case "${arg}" in
         t) #Reseting to previous commit
-            generateTitle "Reseting to previous commit"
             if [ "$repositoryIsSet" = true ]; then
                 for folder in ${repositories}; do
-                    
-                    echo "[INFO] Reseting ${folder} to ${OPTARG} commit"
+                    generateTitle "[INFO] Reseting ${folder} to ${OPTARG} commit"
                     cd $folder
                     git reset --hard ${OPTARG}
                     cd "${init_folder}"
@@ -208,6 +192,33 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                 exit 5
             fi
             ;;
+        # *)
+        #     mistake
+    esac
+done
+OPTIND=1
+while getopts "${optstring}" arg; do
+    case "${arg}" in
+        b) #Checkout
+            if [ "$repositoryIsSet" = true ]; then
+                for folder in ${repositories}; do
+                    generateTitle "Checkout ${folder} on branch ${OPTARG}"
+                    cd $folder
+                    git checkout ${OPTARG}
+                    cd "${init_folder}"
+                done
+            else
+                echo "[ERROR] You need to set the repository to checkout a branch"
+                exit 5
+            fi
+            ;;
+        # *)
+        #     mistake
+    esac
+done
+OPTIND=1
+while getopts "${optstring}" arg; do
+    case "${arg}" in
         u) #Update
             if [ "$repositoryIsSet" = true ]; then
                 for folder in ${repositories}; do
@@ -227,6 +238,7 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                         fi
                         echo "[INFO] Locally changed files:"
                         git status -s
+
                         if [[ "${strategy}" =~ "stash" ]];then
                             # If unstaged changes in the working tree
                             if ! git diff-files --quiet --ignore-submodules --
@@ -254,17 +266,16 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                                 fi
                                 local_changes=1
                             fi
-                        # else
-                        #     echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos."
-                        #     exit 3
+                        fi
+
+                        if [[ ! "${strategy}" =~ "merge|stash" ]]; then
+                            echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos."
+                            exit 3
                         fi
                     fi
-
-                    set +e
                     echo "[INFO] Pulling changes"
-                    git_ssh "git pull" "${ssh_key}"
-                    if [[ ! $? -eq 0 ]]; then
-                        set -e
+                    if ! git_ssh "git pull" "${ssh_key}"
+                    then
                         if [[ "${strategy}" =~ "or-stash" ]]; then
                             echo "[WARNING] Git pull failed. Reseting to last commit."
                             echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\""
@@ -276,7 +287,6 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                             exit 2
                         fi
                     fi
-                    set -e
 
                     if [[ $local_changes -eq 1 ]]; then
                         echo "[INFO] Pushing changes"
@@ -289,33 +299,36 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                 exit 5
             fi
             ;;
+        # *)
+        #     mistake
+    esac
+done
+OPTIND=1
+while getopts "${optstring}" arg; do
+    case "${arg}" in
         i) #Show git log -> To have the commits sha1
             generateTitle "Informations"
             if [ "$repositoryIsSet" = true ]; then
-
                 for folder in ${repositories}; do
-                    
                     cd $folder
-                    generateSubTitle "Last ${OPTARG} commits activity ${folder}"
+                    generateTitle "Last ${OPTARG} commits activity ${folder}"
                     git --no-pager log -n ${OPTARG} --graph
                     #git --no-pager log --graph --all --since "$(date -d "${OPTARG} days ago" "+ %Y-%m-%dT%T")"
-                    generateSubTitle "Tracked files ${folder}"
+                    generateTitle "Tracked files ${folder}"
                     git ls-tree --full-tree -r --name-only HEAD
-                    generateSubTitle "Git status ${folder}"
+                    generateTitle "Git status ${folder}"
                     git status
                     cd "${init_folder}"
                 done
-
             else
                 echo "[ERROR] You need to set the repository to show information"
                 exit 5
             fi
             ;;
-        *)
-            generateTitle "Syntax mistake"
-            echo "[ERROR] You made a syntax mistake calling the script."
-            exit 3
+        # *)
+        #     mistake
     esac
 done
-shift $((OPTIND-1))
+shift "$((OPTIND-1))"
+
 generateTitle "End (success)"
