@@ -66,7 +66,14 @@ usage(){
     echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Warning make sure all repositories exists., multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone Required." | fold -s
     echo -e "\t-b <Branch>\tSwitch to the specified branch or tag." | fold -s
     echo -e "\t\t\tBranch must already exist in the local repository copy (run git checkout origin/branch from the host before)." | fold -s
-    echo -e "\t-u <Strategy>\t\tUpdate the current branch from and to upstream, can adopt 3 strategies. 'merge' -> (commit, pull and push) Require a writable git repo with valid authentication. 'stash' -> (stash the changes and pull). 'add-untracked-merge' -> (add git untracked files, dangerous, and merge) This feature supports multiple repo values !" | fold -s
+    echo -e "\t-u <Strategy>\t\tUpdate the current branch from and to upstream, can adopt 3 strategies. " | fold -s
+    echo -e "\t\t'merge' -> commit, pull and push. Fail if merge fail. Require valid git server authentication." | fold -s
+    echo -e "\t\t'stash' -> stash the changes and pull." | fold -s
+    echo -e "\t\t'merge-or-stash' -> stash, commit, pull and push, if pull fails revert commit and pull. Require valid git server authentication." | fold -s
+    echo -e "\t\t'add-untracked-merge' -> git add untracked files, and merge."
+    echo -e "\t\t'add-untracked-stash' -> git add untracked files, stash the changes and pull." | fold -s
+    echo -e "\t\t'add-untracked-merge-or-stash' -> git add untracked files, merge or stash changes. Require valid git server authentication." | fold -s
+    This feature supports multiple repo values !
     echo -e "\t-t <CommitSAH1>\tHard reset the FIRST local branch to the specified commit.  Multiple repo values are not supported by this feature" | fold -s
     echo -e "\t-i <Number of commits to show>\tShows informations." | fold -s
     echo
@@ -218,27 +225,25 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                         fi
                         echo "[INFO] Locally changed files:"
                         git status -s
-                
-                        if [[ "${strategy}" =~ "merge" ]]; then
+                        if [[ "${strategy}" =~ "stash" ]];then
+                            # If unstaged changes in the working tree
+                            if ! git diff-files --quiet --ignore-submodules --
+                            then
+                                echo "[INFO] Saving changes as a git stash, please apply stash manually from ${host} with 'git stash pop' if you need."
+                                git stash save "Local changes $(date)"
+                            fi
+                        elif [[ "${strategy}" =~ "merge" ]]; then
                             # If unstaged changes in the working tree
                             if ! git diff-files --quiet --ignore-submodules --
                             then
                                 echo "[INFO] Merging changes"
                                 if [[ -n "${commit_msg_file}" ]]; then
-                                    git commit -a -m "Local changes - automatic commit $(date)" -m "${commit_msg_file}"
+                                    commit_msg_file_text=`cat "${commit_msg_file}"`
+                                    git commit -a -m "Changes on ${host} - automatic commit $(date)" -m "${commit_msg_file_text}"
                                 else
-                                    git commit -a -m "Local changes - automatic commit $(date)"
+                                    git commit -a -m "Changes on ${host} - automatic commit $(date)"
                                 fi
                                 local_changes=1
-                            fi
-
-                        elif [[ "${strategy}" =~ "stash" ]];then
-                            # If unstaged changes in the working tree
-                            if ! git diff-files --quiet --ignore-submodules --
-                            then
-                                echo "[WARNING] The changes will be rolled back and not merge with the remote git server."
-                                echo "[INFO] Saving changes as a git stash, please apply stash manually with 'git stash pop' if you need."
-                                git stash save "Local changes $(date)"
                             fi
                         else
                             echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos."
@@ -248,10 +253,18 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
 
                     set +e
                     echo "[INFO] Pulling changes"
-                    git_ssh "git pull" "${ssh_key}" #--no-edit is commented on TOR linux box cause git version doesn't support it
+                    git_ssh "git pull" "${ssh_key}"
                     if [[ ! $? -eq 0 ]]; then
-                        echo "[ERROR] Git pull failed: please read error output. Select a branch with '-b' if you init the git repo. You can merge manually or hard reset to previous commit using '-t' option, your local changes will be erased."
-                        exit 2
+                        set -e
+                        if [[ "${strategy}" =~ "or-stash" ]]; then
+                            echo "[WARNING] Git pull failed. Reseting to last commit"
+                            git reset --hard HEAD~1
+                            echo "[INFO] Pulling changes"
+                            git_ssh "git pull" "${ssh_key}"
+                        else
+                            echo "[ERROR] Git pull failed: please read error output. You can merge manually or use another update stategy. You can also hard reset to previous commit using '-t' option, your local changes will be erased."
+                            exit 2
+                        fi
                     fi
                     set -e
 
