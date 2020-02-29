@@ -268,7 +268,7 @@ while getopts "${optstring}" arg; do
                             fi
                         fi
 
-                        if [[ ! "${strategy}" =~ "merge|stash" ]]; then
+                        if [[ ! "${strategy}" =~ "merge\|stash" ]]; then
                             echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos."
                             exit 3
                         fi
