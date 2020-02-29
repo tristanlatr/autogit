@@ -209,15 +209,16 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
             fi
             ;;
         u) #Update
-            generateTitle "Updates(s)"
             if [ "$repositoryIsSet" = true ]; then
                 for folder in ${repositories}; do
                     
                     cd $folder
-                    generateSubTitle "Update ${folder}"
+                    generateTitle "Updating ${folder}"
                     local_changes=0
                     strategy=${OPTARG}
                     git_status=`git status -s`
+                    commit_and_stash_name="git-admin changes on ${host} $(date)"
+
                     if [[ -n ${git_status} ]]; then
 
                         if [[ "${strategy}" =~ "add-untracked" ]]; then
@@ -231,10 +232,11 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                             if ! git diff-files --quiet --ignore-submodules --
                             then
                                 echo "[INFO] Saving changes as a git stash, please apply stash manually from ${host} with 'git stash pop' if you need."
-                                git stash save "Local changes $(date)"
+                                
+                                git stash save "${commit_and_stash_name}"
                                 if [[ "${strategy}" =~ "or-stash" ]]; then
                                     echo "[INFO] Applying stash in order to merge"
-                                    git stash apply stash@{0}
+                                    git stash apply --quiet stash@{0}
                                 fi
                             fi
                         fi
@@ -246,9 +248,9 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                                 echo "[INFO] Merging changes"
                                 if [[ -n "${commit_msg_file}" ]]; then
                                     commit_msg_file_text=`cat "${commit_msg_file}"`
-                                    git commit -a -m "Changes on ${host} - automatic commit $(date)" -m "${commit_msg_file_text}"
+                                    git commit -a -m "${commit_and_stash_name}" -m "${commit_msg_file_text}"
                                 else
-                                    git commit -a -m "Changes on ${host} - automatic commit $(date)"
+                                    git commit -a -m "${commit_and_stash_name}"
                                 fi
                                 local_changes=1
                             fi
@@ -264,7 +266,8 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                     if [[ ! $? -eq 0 ]]; then
                         set -e
                         if [[ "${strategy}" =~ "or-stash" ]]; then
-                            echo "[WARNING] Git pull failed. Reseting to last commit"
+                            echo "[WARNING] Git pull failed. Reseting to last commit."
+                            echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\""
                             git reset --hard HEAD~1
                             echo "[INFO] Pulling changes"
                             git_ssh "git pull" "${ssh_key}"
