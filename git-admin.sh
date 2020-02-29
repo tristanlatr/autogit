@@ -232,8 +232,14 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                             then
                                 echo "[INFO] Saving changes as a git stash, please apply stash manually from ${host} with 'git stash pop' if you need."
                                 git stash save "Local changes $(date)"
+                                if [[ "${strategy}" =~ "or-stash" ]]; then
+                                    echo "[INFO] Applying stash in order to merge"
+                                    git stash apply stash@{0}
+                                fi
                             fi
-                        elif [[ "${strategy}" =~ "merge" ]]; then
+                        fi
+
+                        if [[ "${strategy}" =~ "merge" ]]; then
                             # If unstaged changes in the working tree
                             if ! git diff-files --quiet --ignore-submodules --
                             then
@@ -246,9 +252,9 @@ while getopts ":hk:c:r:b:f:t:u:i:" arg; do
                                 fi
                                 local_changes=1
                             fi
-                        else
-                            echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos."
-                            exit 3
+                        # else
+                        #     echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos."
+                        #     exit 3
                         fi
                     fi
 
