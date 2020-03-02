@@ -40,7 +40,7 @@ usage(){
     echo -e "\t-h\t\tPrint this help message." | fold -s
     echo -e "\t-k <Key>\tPath to a trusted ssh key to authenticate against the git server (push). Required if git authentication is not already working with default key." | fold -s
     echo -e "\t-c <Url>\tURL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several reposities, the same URL will used for all. Multiple repo values are not supported by this feature." | fold -s
-    echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Warning make sure all repositories exists., multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone Required." | fold -s
+    echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Only remote 'origin' can be used. Warning make sure all repositories exists, multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone. Required." | fold -s
     echo -e "\t-b <Branch>\tSwitch to the specified branch or tag." | fold -s
     echo -e "\t\t\tBranch must already exist in the local repository copy (run git checkout origin/branch from the host before)." | fold -s
     echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can adopt 3 strategies. This feature supports multiple repo values !" | fold -s
@@ -87,14 +87,14 @@ git_ssh(){
 }
 
 host=`hostname`
+init_folder=`pwd`
 repositoryIsSet=false
 repositories=()
 ssh_key=""
 git_clone_url=""
 commit_msg_file=""
-init_folder=`pwd`
+git_push_args=""
 optstring="hk:c:f:r:b:t:u:i:"
-
 generateTitle "git-admin on ${host}"
 
 while getopts "${optstring}" arg; do
@@ -203,6 +203,7 @@ while getopts "${optstring}" arg; do
                 if git diff-files --quiet -- && git diff-index --quiet --cached --exit-code HEAD
                 then
                     git checkout -b ${OPTARG}
+                    git_push_args="-u origin ${OPTARG}"
                 else
                     echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." | fold -s
                     exit 6
@@ -285,7 +286,8 @@ while getopts "${optstring}" arg; do
 
                 if [[ "${strategy}" =~ "merge" ]]; then
                     echo "[INFO] Pushing changes"
-                    git_ssh "git push --quiet" "${ssh_key}"
+                    git_push_args="-u origin test"
+                    git_ssh "git push --quiet ${git_push_args}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
             done
