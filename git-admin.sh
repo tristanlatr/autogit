@@ -202,7 +202,10 @@ while getopts "${optstring}" arg; do
                 cd $folder
                 if git diff-files --quiet -- && git diff-index --quiet --cached --exit-code HEAD
                 then
-                    git checkout -b ${OPTARG}
+                    if ! git checkout -b ${OPTARG}
+                    then
+                        git checkout ${OPTARG}
+                    fi
                     git_push_args="-u origin ${OPTARG}"
                 else
                     echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." | fold -s
