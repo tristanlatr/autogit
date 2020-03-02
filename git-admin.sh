@@ -163,7 +163,7 @@ while getopts "${optstring}" arg; do
                         git_ssh "git remote update" "${ssh_key}"
                         git_ssh "git branch -a -vv" "${ssh_key}"
                     else
-                        echo "[ERROR] Git reposirtory do not exist and -c URL is not set. Please set git URL to be able to initiate the repo" |  fold -s
+                        echo "[ERROR] Git reposirtory do not exist and '-c <URL>' is not set. Please set git URL to be able to initiate the repo" |  fold -s
                         exit 4
                     fi
                 fi
@@ -224,38 +224,39 @@ while getopts "${optstring}" arg; do
                 cd $folder
                 generateTitle "Updating ${folder}"
                 strategy=${OPTARG}
+                branch=`git rev-parse --abbrev-ref HEAD`
 
                 if [[ ! "${strategy}" =~ "merge" ]] && [[ ! "${strategy}" =~ "stash" ]]; then
                     echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos." | fold -s
                     exit 3
                 fi
-
+                # If there is any kind of changes in the working tree
                 if [[ -n `git status -s` ]]; then
-
                     commit_and_stash_name="[git-admin] Changes on ${host} $(date)"
 
                     if [[ "${strategy}" =~ "add-untracked" ]]; then
                         echo "[INFO] Adding untracked files"
                         git add .
                     fi
+
                     echo "[INFO] Locally changed files:"
                     git status -s
 
-                    if [[ "${strategy}" =~ "stash" ]];then
-                        # If staged or unstaged changes in the working tree
-                        if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
-                        then
-                            echo "[INFO] Saving changes as a git stash, please apply stash manually from ${host} with 'git stash pop' if you need." | fold -s
-                            git stash save "${commit_and_stash_name}"
-                            if [[ "${strategy}" =~ "merge-or-stash" ]]; then
-                                echo "[INFO] Applying stash in order to merge"
-                                git stash apply --quiet stash@{0}
-                            fi
+                    # if [[ "${strategy}" =~ "stash" ]];then
+                    # If staged or unstaged changes in the tracked files in the working tree
+                    if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
+                    then
+                        echo "[INFO] Saving changes as a git stash, you can apply stash manually from ${host}. 'git stash list' help you determine the stash index (n) of this changes (\"${commit_and_stash_name}\"), then use 'git stash apply stash@{n}'." | fold -s
+                        git stash save "${commit_and_stash_name}"
+                        if [[ "${strategy}" =~ "merge" ]]; then
+                            echo "[INFO] Applying stash in order to merge"
+                            git stash apply --quiet stash@{0}
                         fi
                     fi
+                    # fi
 
                     if [[ "${strategy}" =~ "merge" ]]; then
-                        # If staged or unstaged changes in the working tree
+                        # If staged or unstaged changes in the tracked files in the working tree
                         if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
                         then
                             echo "[INFO] Merging changes"
@@ -280,15 +281,26 @@ while getopts "${optstring}" arg; do
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull" "${ssh_key}"
+                    elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
+                        conflit_branch="git-admin_conflit_$(echo ${commit_and_stash_name} | tr -d '[:space:]')"
+                        echo "[WARNING] Git pull failed. Creating a new remote branch ${conflit_branch}"
+                        git reset --hard HEAD~1
+                        git checkout -b ${conflit_branch}
+                        echo "[INFO] Applying stash in order to push to new remote branch"
+                        git stash apply --quiet stash@{0}
+                        cd "${init_folder}"
+                        $0 -r $folder -u merge
+                        echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
+                        exit 2
                     else
-                        echo "[ERROR] Git pull failed: please read error output. You can merge manually or use another update stategy. You can also hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
+                        echo "[ERROR] Git pull failed, please read error output. You can hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased. You can also use '-u stash' strategy to save your local changes as a stash." | fold -s
+                        echo "[INFO] Please merge the local branch manually from ${host}."
                         exit 2
                     fi
                 fi
 
                 if [[ "${strategy}" =~ "merge" ]]; then
                     echo "[INFO] Pushing changes"
-                    branch=`git rev-parse --abbrev-ref HEAD`
                     git_ssh "git push --quiet -u origin ${branch}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
