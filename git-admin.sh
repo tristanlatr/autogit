@@ -288,7 +288,7 @@ while getopts "${optstring}" arg; do
 
                 if [[ "${strategy}" =~ "merge" ]]; then
                     echo "[INFO] Pushing changes"
-                    branch=`$(git rev-parse --abbrev-ref HEAD)`
+                    branch=`$(git rev-parse --abbrev-ref HEAD) | tr '\n' ''`
                     git_ssh "git push --quiet -u origin ${branch}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
