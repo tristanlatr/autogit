@@ -278,14 +278,14 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull" "${ssh_key}"
                     else
-                        echo "[ERROR] Git pull failed: please read error output. You can merge manually or use another update stategy. You can also hard reset to previous commit using '-t' option, your local changes will be erased." | fold -s
+                        echo "[ERROR] Git pull failed: please read error output. You can merge manually or use another update stategy. You can also hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
                         exit 2
                     fi
                 fi
 
                 if [[ "${strategy}" =~ "merge" ]]; then
                     echo "[INFO] Pushing changes"
-                    git_ssh "git push" "${ssh_key}"
+                    git_ssh "git push --quiet" "${ssh_key}"
                 fi
                 cd "${init_folder}"
             done
