@@ -286,7 +286,6 @@ while getopts "${optstring}" arg; do
 
                 if [[ "${strategy}" =~ "merge" ]]; then
                     echo "[INFO] Pushing changes"
-                    git_push_args="-u origin test"
                     git_ssh "git push --quiet ${git_push_args}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
