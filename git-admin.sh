@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Titles
+# Titles 456
 symbol="*"
 paddingSymbol=" "
 lineLength=70
