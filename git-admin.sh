@@ -206,7 +206,6 @@ while getopts "${optstring}" arg; do
                     then
                         git checkout ${OPTARG}
                     fi
-                    git_push_args="-u origin ${OPTARG}"
                 else
                     echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." | fold -s
                     exit 6
@@ -289,7 +288,8 @@ while getopts "${optstring}" arg; do
 
                 if [[ "${strategy}" =~ "merge" ]]; then
                     echo "[INFO] Pushing changes"
-                    git_ssh "git push --quiet ${git_push_args}" "${ssh_key}"
+                    branch=`$(git rev-parse --abbrev-ref HEAD)`
+                    git_ssh "git push --quiet -u origin ${branch}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
             done
