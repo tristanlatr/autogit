@@ -294,6 +294,8 @@ while getopts "${optstring}" arg; do
                         exit 2
                     else
                         echo "[ERROR] Git pull failed, please read error output. You can hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased. You can also use '-u stash' strategy to save your local changes as a stash." | fold -s
+                        echo "[WARNING] Git pull failed. Reseting to last commit."
+                        git reset --hard HEAD~1
                         echo "[INFO] Please merge the local branch manually from ${host}."
                         exit 2
                     fi
