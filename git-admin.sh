@@ -242,18 +242,23 @@ while getopts "${optstring}" arg; do
                     echo "[INFO] Locally changed files:"
                     git status -s
 
-                    # if [[ "${strategy}" =~ "stash" ]];then
-                    # If staged or unstaged changes in the tracked files in the working tree
-                    if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
-                    then
-                        echo "[INFO] Saving changes as a git stash, you can apply stash manually from ${host}. 'git stash list' help you determine the stash index (n) of this changes (\"${commit_and_stash_name}\"), then use 'git stash apply stash@{n}'." | fold -s
-                        git stash save "${commit_and_stash_name}"
-                        if [[ "${strategy}" =~ "merge" ]]; then
-                            echo "[INFO] Applying stash in order to merge"
-                            git stash apply --quiet stash@{0}
+                    if [[ ! "${strategy}" =~ "no-stash" ]];then
+                        # If staged or unstaged changes in the tracked files in the working tree
+                        if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
+                        then
+                            echo "[INFO] Saving changes as a git stash, you can apply stash manually from ${host}. 'git stash list' help you determine the stash index (n) of this changes (\"${commit_and_stash_name}\"), then use 'git stash apply stash@{n}'." | fold -s
+                            if ! git stash save "${commit_and_stash_name}"
+                            then
+                                echo "[ERROR] You seem to be in the middle of a merge, you can use '-u merge-no-stash' update strategy to skip the git stash save step. If the merge fail, the git repo will be in a conflict state."
+                                exit 2
+                            fi
+
+                            if [[ "${strategy}" =~ "merge" ]]; then
+                                echo "[INFO] Applying stash in order to merge"
+                                git stash apply --quiet stash@{0}
+                            fi
                         fi
                     fi
-                    # fi
 
                     if [[ "${strategy}" =~ "merge" ]]; then
                         # If staged or unstaged changes in the tracked files in the working tree
@@ -281,8 +286,9 @@ while getopts "${optstring}" arg; do
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull" "${ssh_key}"
+
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
-                        conflit_branch="git-admin_conflit_$(echo ${commit_and_stash_name} | tr -d '[:space:]')"
+                        conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
                         echo "[WARNING] Git pull failed. Creating a new remote branch ${conflit_branch}"
                         git reset --hard HEAD~1
                         git checkout -b ${conflit_branch}
@@ -292,6 +298,7 @@ while getopts "${optstring}" arg; do
                         $0 -r $folder -u merge
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
                         exit 2
+
                     else
                         echo "[ERROR] Git pull failed, please read error output. You can hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased. You can also use '-u stash' strategy to save your local changes as a stash." | fold -s
                         echo "[WARNING] Git pull failed. Reseting to last commit."
