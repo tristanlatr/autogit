@@ -200,11 +200,11 @@ while getopts "${optstring}" arg; do
             for folder in ${repositories}; do
                 generateTitle "Checkout ${folder} on branch ${OPTARG}"
                 cd $folder
-                if git diff-files --quiet --
+                if git diff-files --quiet -- && git diff-index --quiet --cached --exit-code HEAD
                 then
                     git checkout ${OPTARG}
                 else
-                    echo "[ERROR] Can't checkout with unstaged files in working tree, please merge changes first." | fold -s
+                    echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." | fold -s
                     exit 6
                 fi
                 cd "${init_folder}"
@@ -220,7 +220,6 @@ while getopts "${optstring}" arg; do
                 
                 cd $folder
                 generateTitle "Updating ${folder}"
-                local_changes=0
                 strategy=${OPTARG}
 
                 if [[ ! "${strategy}" =~ "merge" ]] && [[ ! "${strategy}" =~ "stash" ]]; then
@@ -240,8 +239,8 @@ while getopts "${optstring}" arg; do
                     git status -s
 
                     if [[ "${strategy}" =~ "stash" ]];then
-                        # If unstaged changes in the working tree
-                        if ! git diff-files --quiet --
+                        # If staged or unstaged changes in the working tree
+                        if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
                         then
                             echo "[INFO] Saving changes as a git stash, please apply stash manually from ${host} with 'git stash pop' if you need." | fold -s
                             git stash save "${commit_and_stash_name}"
@@ -253,8 +252,8 @@ while getopts "${optstring}" arg; do
                     fi
 
                     if [[ "${strategy}" =~ "merge" ]]; then
-                        # If unstaged changes in the working tree
-                        if ! git diff-files --quiet --
+                        # If staged or unstaged changes in the working tree
+                        if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
                         then
                             echo "[INFO] Merging changes"
                             if [[ -n "${commit_msg_file}" ]]; then
@@ -263,7 +262,6 @@ while getopts "${optstring}" arg; do
                             else
                                 git commit -a -m "${commit_and_stash_name}"
                             fi
-                            local_changes=1
                         fi
                     fi
                 else
@@ -285,7 +283,7 @@ while getopts "${optstring}" arg; do
                     fi
                 fi
 
-                if [[ $local_changes -eq 1 ]]; then
+                if [[ "${strategy}" =~ "merge" ]]; then
                     echo "[INFO] Pushing changes"
                     git_ssh "git push" "${ssh_key}"
                 fi
