@@ -293,7 +293,7 @@ while getopts "${optstring}" arg; do
                 fi
 
                 echo "[INFO] Merging"
-                if ! with_ssh_key "git pull --no-edit" "${ssh_key}"
+                if ! with_ssh_key "git pull" "${ssh_key}"
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
@@ -301,14 +301,14 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" | fold -s
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
-                        with_ssh_key "git pull --no-edit" "${ssh_key}"
+                        with_ssh_key "git pull" "${ssh_key}"
                     
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         echo "[WARNING] Merge failed. Overwriting remote."
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes with --no-commit flag"
-                        if ! with_ssh_key "git pull --no-edit --no-commit" "${ssh_key}"
+                        if ! with_ssh_key "git pull --no-commit" "${ssh_key}"
                         then
                             echo "[INFO] In the middle of a merge conflict"
                         else
