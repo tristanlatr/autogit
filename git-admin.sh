@@ -297,6 +297,7 @@ while getopts "${optstring}" arg; do
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull --no-edit" "${ssh_key}"
+                    # Ce n'est pas de l'information à jour
                     # No error
                     # See at https://stackoverflow.com/questions/30208928/can-git-pull-automatically-stash-and-pop-pending-changes
                     elif [[ "${strategy}" =~ "merge-overwrite-remote" ]]; then
