@@ -294,17 +294,17 @@ while getopts "${optstring}" arg; do
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull --no-edit" "${ssh_key}"
+                    
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         echo "[WARNING] Git pull failed. Overwriting remote."
                         git reset --hard HEAD~1
-                        echo "[INFO] Pull no-commit"
-                        set +e
-                        git_ssh "git pull --no-edit --no-commit" "${ssh_key}"
+                        echo "[INFO] Pulling changes with --no-commit flag"
+                        git_ssh "git pull --no-edit --no-commit" "${ssh_key}" || echo "[ERROR] Git pull successful, no need to overwrite."
+                        echo "[INFO] In the middle of a merge conflict"
                         echo "[INFO] Applying stash in order to merge"
-                        git stash apply --quiet stash@{0}
-                        set -e
-                        echo "[INFO] Overwriting files"
+                        git stash apply --quiet stash@{0} ||  echo "[ERROR] Git stash apply successful, no need to overwrite"
+                        echo "[INFO] Overwriting files with stashed changes"
                         for file in `git ls-tree --full-tree -r --name-only HEAD`; do
                             git checkout --theirs -- ${file}
                             git add ${file}
@@ -337,11 +337,11 @@ while getopts "${optstring}" arg; do
                     
                     else
                         echo "[ERROR] Git pull failed."
-                        echo "[WARNING] Git pull failed. Reseting to last commit and re-applying stashed changes."
+                        echo "[WARNING] Reseting to last commit and re-applying stashed changes."
                         git reset --hard HEAD~1
                         git stash apply --quiet stash@{0}
                         echo "[INFO] Please merge the local branch manually from ${host} or hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
-                        generateTitle "End. Warning: nothing changed"
+                        generateTitle "End. Error: nothing changed"
                         exit 2
                     fi
                 fi
