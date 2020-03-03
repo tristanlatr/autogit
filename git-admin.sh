@@ -297,6 +297,7 @@ while getopts "${optstring}" arg; do
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull --no-edit" "${ssh_key}"
+                    # Ce n'est pas de l'information à jour
                     # No error
                     elif [[ "${strategy}" =~ "merge-overwrite-remote" ]]; then
                         echo "[WARNING] Overwriting remote!"
