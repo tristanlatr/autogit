@@ -298,7 +298,7 @@ while getopts "${optstring}" arg; do
                         git_ssh "git pull --no-edit" "${ssh_key}"
                     # Force overwrite
                     # No error
-                    # See at https://stackoverflow.com/questions/30208928/can-git-pull-automatically-stash-and-pop-pending-changes
+                    # Continues
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         echo "[WARNING] Overwriting remote."
                         echo "[INFO] Git merge failed. Stash, pull, pop and commit pending changes..."
