@@ -70,6 +70,7 @@ usage(){
     echo -e "\t\t5 Repository not set"
     echo -e "\t\t6 Can't checkout with unstaged files in working tree"
     echo -e "\t\t7 Already in the middle of a merge"
+    echo -e "\t\t8 Stash could not be saved"
 }
 
 with_ssh_key(){
@@ -242,7 +243,8 @@ while getopts "${optstring}" arg; do
                 fi
                 # If there is any kind of changes in the working tree
                 if [[ -n `git status -s` ]]; then
-                    commit_and_stash_name="[git-admin] Changes on ${host} $(date)"
+                    commit_and_stash_date=`date +"%Y-%m-%dT%H-%M-%S"`
+                    commit_and_stash_name="[git-admin] Changes on ${host} ${commit_and_stash_date}"
 
                     if [[ "${git_add_untracked}" = true ]]; then
                         echo "[INFO] Adding untracked files"
@@ -262,11 +264,20 @@ while getopts "${optstring}" arg; do
                             echo "[INFO] Please solve conflicts and clean working tree manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
                             generateTitle "End. Error: Repository is in a conflict state"
                             exit 7
+                        else
+                            if [[ -z `git stash list | grep "${commit_and_stash_date}"` ]] && [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
+                                echo "[ERROR] Looks like your stash could not be saved, to continue anyway, please use '-u merge-or-fail'"
+                                exit 8
+                            fi
                         fi
 
                         if [[ "${strategy}" =~ "merge" ]]; then
-                            echo "[INFO] Applying stash in order to merge"
-                            git stash apply --quiet stash@{0}
+                            if [[ -n `git stash list | grep "${commit_and_stash_date}"` ]]; then
+                                echo "[INFO] Applying stash in order to merge"
+                                git stash apply --quiet stash@{0}
+                            else
+                                echo "[WARNING] Your changes are ot stashed"
+                            fi
 
                             echo "[INFO] Committing changes"
                             if [[ -n "${commit_msg}" ]]; then
