@@ -52,7 +52,7 @@ usage(){
     echo -e "\t-a\tAdd untracked files to git. To use with '-u <Strategy>'."
     echo -e "\t-f <Commit msg file>\tSpecify a commit message from a file. To use with '-u <Strategy>'." | fold -s
     echo -e "\t-t <CommitSAH1>\tHard reset the local branch to the specified commit. Multiple repo values are not supported by this feature" | fold -s
-    echo -e "\t-i <Number of commits to show>\tShows tracked files, git status and commit history of last n commits." | fold -s
+    echo -e "\t-i <Number of commits to show>\tShows tracked files, git stashes, git status and commit history of last n commits." | fold -s
     echo
     echo -e "\tExamples : " | fold -s
     echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -u merge -i 5" | fold -s
@@ -351,7 +351,7 @@ while getopts "${optstring}" arg; do
                 else
                     branch=`git rev-parse --abbrev-ref HEAD`
                     echo "[INFO] Clearing stashes of current branch (${branch}), leaving last 5 stashes" | fold -s
-                    for stash in `git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+7 | tail -r`; do
+                    for stash in `git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+7 | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
                         if ! git stash drop --quiet "${stash}"
                         then
                             stash_name=`git stash list | grep "On ${branch}" | grep "${stash}"`
@@ -381,6 +381,8 @@ while getopts "${optstring}" arg; do
                 git ls-tree --full-tree -r --name-only HEAD
                 generateTitle "Last ${OPTARG} commits activity ${folder}"
                 git --no-pager log -n ${OPTARG} --graph                
+                generateTitle "Git stashes ${folder}"
+                git stash list
                 generateTitle "Git status ${folder}"
                 git status
                 cd "${init_folder}"
