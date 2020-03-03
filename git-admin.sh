@@ -296,7 +296,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull --no-edit" "${ssh_key}"
                     # Force overwrite
-                    # No it will fail cwghbtrgbhtrgtrgtrgtrger2we2978652323
+                    # No error at all
                     # Stash, pull, apply and commit changes.
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         echo "[WARNING] Git pull failed. Overwriting remote."
