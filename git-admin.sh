@@ -43,7 +43,7 @@ usage(){
     echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can adopt 6 strategies. This feature supports multiple repo values !" | fold -s
     echo
     echo -e "\t\t- 'merge' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Require a write access to git server." | fold -s
-    echo -e "\t\t- 'merge-overwrite-remote' -> save changes as stash, apply them, commit, pull and push, if pull fails, use git pull --rebase --autostash and merge . Require a write access to git server." | fold -s
+    echo -e "\t\t- 'merge-overwrite' -> save changes as stash, apply them, commit, pull and push, if pull fails, use git pull --rebase --autostash and merge . Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-branch' -> save changes as stash, apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-fail' -> save changes as stash, apply them, commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-no-stash' -> commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Git stash will fail if your in the midle of a merge, this will skip the git stash step. Require a write access to git server." | fold -s
@@ -259,7 +259,7 @@ while getopts "${optstring}" arg; do
                             echo "[INFO] Saving changes as a git stash, you can apply stash manually from ${host}. 'git stash list' help you determine the stash index (n) of this changes (\"${commit_and_stash_name}\"), then use 'git stash apply stash@{n}'." | fold -s
                             if ! git stash save "${commit_and_stash_name}"
                             then
-                                echo "[ERROR] You seem to be in the middle of a merge, you can use '-u merge-no-stash' update strategy to skip the git stash save step. If the merge fail, the git repo will be in a conflict state. Note that wih 'merge-no-stash' option might trigger git pull to invvoke vim" | fold -s
+                                echo "[ERROR] You seem to be in the middle of a merge, you can use '-u merge-no-stash' update strategy to skip the git stash save step. If the merge fail, the git repo will be in a conflict state."
                                 exit 2
                             fi
 
@@ -297,16 +297,13 @@ while getopts "${optstring}" arg; do
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull --no-edit" "${ssh_key}"
-                    # This throws no errors and should overwrite the remote changes
+                    # Force overwrite
                     # No error
                     # See at https://stackoverflow.com/questions/30208928/can-git-pull-automatically-stash-and-pop-pending-changes
-                    elif [[ "${strategy}" =~ "merge-overwrite-remote" ]]; then
+                    elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         echo "[WARNING] Overwriting remote!"
-                        git config pull.rebase true
-                        git config rebase.autoStash true
-                        git_ssh "git pull --no-edit" "${ssh_key}"
-                        git config pull.rebase false
-                        git config rebase.autoStash false
+                        branch=`git rev-parse --abbrev-ref HEAD`
+                        git_ssh "git merge -s ours ${branch} --no-edit" "${ssh_key}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
