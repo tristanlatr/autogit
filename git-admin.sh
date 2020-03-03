@@ -300,11 +300,21 @@ while getopts "${optstring}" arg; do
                     # No error
                     # Stash, pull, apply and commit changes.
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
-                        echo "[WARNING] Overwriting remote."
-                        echo "[INFO] Git merge failed. Stash, pull, pop and commit pending changes..."
+                        echo "[WARNING] Git pull failed. Overwriting remote."
+                        echo "[INFO] Reseting"
                         git reset --hard HEAD~1
-                        git_ssh "git pull --no-edit --no-commit" "${ssh_key}"
+                        echo "[INFO] Pulling"
+                        if ! git_ssh "git pull --no-edit --no-commit" "${ssh_key}"
+                        then
+                            echo "[INFO] Git pull failed --no-commit"
+                        fi
+                        echo "[INFO] Apply stash"
                         git stash apply --quiet stash@{0}
+                        for changed_file in `git ls-tree --full-tree -r --name-only HEAD`; do
+                            echo "[INFO] Overwriting ${changed_file}"
+                            git checkout --ours -- ${changed_file}
+                            git add ${changed_file}
+                        done
                         git commit -a -m "[Overwrite] ${commit_and_stash_name}" -m "${commit_msg_file_text}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
