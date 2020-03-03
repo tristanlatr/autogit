@@ -66,7 +66,7 @@ usage(){
     echo -e "\t\t1 Other errors"
     echo -e "\t\t2 Git merge failed"
     echo -e "\t\t3 Syntax mistake"
-    echo -e "\t\t4 Git reposirtory does't exist and -c URL is not set"
+    echo -e "\t\t4 Git reposirtory does't exist and '-c URL' is not set"
     echo -e "\t\t5 Repository not set"
     echo -e "\t\t6 Can't checkout with unstaged files in working tree"
     echo -e "\t\t7 Already in the middle of a merge"
@@ -254,7 +254,7 @@ while getopts "${optstring}" arg; do
                     # If staged or unstaged changes in the tracked files in the working tree
                     if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
                     then
-                        echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"." | fold -s
+                        echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
                         if ! git stash save "${commit_and_stash_name}"
                         then
                             echo "[ERROR] Unable to save stash"
@@ -358,7 +358,6 @@ while getopts "${optstring}" arg; do
                             echo "[WARNING] A stash could not be deleted: ${stash_name}"
                         fi
                     done
-                
                 fi
 
                 if [[ "${strategy}" =~ "merge" ]]; then
