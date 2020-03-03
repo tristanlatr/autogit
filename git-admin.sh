@@ -200,16 +200,22 @@ while getopts "${optstring}" arg; do
             for folder in ${repositories}; do
                 generateTitle "Checkout ${folder} on branch ${OPTARG}"
                 cd $folder
-                if git diff-files --quiet -- && git diff-index --quiet --cached --exit-code HEAD
-                then
-                    if ! git checkout -b ${OPTARG}
+                branch=`git rev-parse --abbrev-ref HEAD`
+                if [[ ! "${OPTARG}" == "${branch}" ]]; then
+                    if git diff-files --quiet -- && git diff-index --quiet --cached --exit-code HEAD
                     then
-                        git checkout ${OPTARG}
+                        if ! git checkout -b ${OPTARG}
+                        then
+                            git checkout ${OPTARG}
+                        fi
+                    else
+                        echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." | fold -s
+                        exit 6
                     fi
                 else
-                    echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." | fold -s
-                    exit 6
+                    echo "[INFO] Already on branch ${OPTARG}"
                 fi
+
                 cd "${init_folder}"
             done
             ;;
@@ -224,7 +230,6 @@ while getopts "${optstring}" arg; do
                 cd $folder
                 generateTitle "Updating ${folder}"
                 strategy=${OPTARG}
-                branch=`git rev-parse --abbrev-ref HEAD`
 
                 if [[ ! "${strategy}" =~ "merge" ]] && [[ ! "${strategy}" =~ "stash" ]]; then
                     echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos." | fold -s
@@ -316,6 +321,7 @@ while getopts "${optstring}" arg; do
 
                 if [[ "${strategy}" =~ "merge" ]]; then
                     echo "[INFO] Pushing changes"
+                    branch=`git rev-parse --abbrev-ref HEAD`
                     git_ssh "git push --quiet -u origin ${branch}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
