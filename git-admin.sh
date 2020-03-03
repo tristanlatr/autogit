@@ -294,15 +294,20 @@ while getopts "${optstring}" arg; do
                         git checkout -b ${conflit_branch}
                         echo "[INFO] Applying stash in order to push to new remote branch"
                         git stash apply --quiet stash@{0}
-                        cd "${init_folder}"
-                        $0 -r $folder -u merge
+                        git_ssh "git push --quiet -u origin ${branch}" "${ssh_key}"
+                        
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
                         exit 2
-
+                    elif [[ "${strategy}" =~ "merge-no-stash" ]]; then
+                        echo "[ERROR] Git pull failed, please read error output. You can hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
+                        echo "[WARNING] Git pull failed. repository is in a conflict state!"
+                        echo "[INFO] Please solve conflict merge the local branch manually from ${host}."
+                        exit 2
                     else
-                        echo "[ERROR] Git pull failed, please read error output. You can hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased. You can also use '-u stash' strategy to save your local changes as a stash." | fold -s
-                        echo "[WARNING] Git pull failed. Reseting to last commit."
+                        echo "[ERROR] Git pull failed, please read error output. You can hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
+                        echo "[WARNING] Git pull failed. Reseting to last commit and re-applying stashed changes."
                         git reset --hard HEAD~1
+                        git stash apply --quiet stash@{0}
                         echo "[INFO] Please merge the local branch manually from ${host}."
                         exit 2
                     fi
