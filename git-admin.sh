@@ -74,7 +74,8 @@ usage(){
 }
 
 with_ssh_key(){
-    return_val=-1
+    set +e
+    return_val=1
     if [[ ! -z "$2" ]]; then
         echo "[INFO] Using SSH key"
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
@@ -85,6 +86,7 @@ with_ssh_key(){
         bash -c $1
         return_val=$?
     fi
+    set -e
     return $return_val
 }
 
