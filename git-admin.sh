@@ -304,7 +304,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Git merge failed. Stash, pull, pop and commit pending changes..."
                         git reset --hard HEAD~1
                         git_ssh "git pull --no-edit --no-commit" "${ssh_key}"
-                        git stash git stash apply --quiet stash@{0}
+                        git stash apply --quiet stash@{0}
                         git commit -a -m "[Overwrite] ${commit_and_stash_name}" -m "${commit_msg_file_text}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
