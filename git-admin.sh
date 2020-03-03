@@ -42,14 +42,14 @@ usage(){
     echo -e "\t-c <Url>\tURL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several reposities, the same URL will used for all. Multiple repo values are not supported by this feature." | fold -s
     echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Only remote 'origin' can be used. Warning make sure all repositories exists, multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone. Required." | fold -s
     echo -e "\t-b <Branch>\tSwitch to the specified branch or tag." | fold -s
-    echo -e "\t\t\tBranch must already exist in the local repository copy (run git checkout origin/branch from the host before)." | fold -s
-    echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can adopt 3 strategies. This feature supports multiple repo values !" | fold -s
-    echo -e "\t\t'merge' -> commit, pull and push. Fail if merge fail. Require valid git server authentication." | fold -s
-    echo -e "\t\t'stash' -> stash the changes and pull." | fold -s
-    echo -e "\t\t'merge-or-stash' -> stash, commit, pull and push, if pull fails revert commit and pull. Require valid git server authentication." | fold -s
-    echo -e "\t\t'add-untracked-merge' -> git add untracked files, and merge."
-    echo -e "\t\t'add-untracked-stash' -> git add untracked files, stash the changes and pull." | fold -s
-    echo -e "\t\t'add-untracked-merge-or-stash' -> git add untracked files, merge or stash changes. Require valid git server authentication." | fold -s
+    echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can adopt 6 strategies. This feature supports multiple repo values !" | fold -s
+    echo -e "\t\t- 'merge' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Require a write access to git server." | fold -s
+    echo -e "\t\t- 'merge-or-branch' -> save changes as stash, apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote. Require a write access to git server." | fold -s
+    echo -e "\t\t- 'merge-or-fail' -> save changes as stash, apply them, commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Require a write access to git server." | fold -s
+    echo -e "\t\t- 'merge-no-stash' -> commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Git stash will fail if your in the midle of a merge, this will skip the git stash step. Require a write access to git server." | fold -s
+    echo -e "\t\t- 'merge-or-stash' -> save changes as stash, apply them, commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash) Require a write access to git server." | fold -s    
+    echo -e "\t\t- 'stash' -> stash the changes and pull. Do not require a write acces to git server." | fold -s
+    echo -e "\t-a\tAdd untracked files to git."
     echo -e "\t-t <CommitSAH1>\tHard reset the FIRST local branch to the specified commit.  Multiple repo values are not supported by this feature" | fold -s
     echo -e "\t-i <Number of commits to show>\tShows informations." | fold -s
     echo
@@ -93,8 +93,8 @@ repositories=()
 ssh_key=""
 git_clone_url=""
 commit_msg_file=""
-git_push_args=""
-optstring="hk:c:f:r:b:t:u:i:"
+git_add_untracked=false
+optstring="hk:c:f:ar:b:t:u:i:"
 generateTitle "git-admin on ${host}"
 
 while getopts "${optstring}" arg; do
@@ -103,6 +103,7 @@ while getopts "${optstring}" arg; do
         k) ;;
         c) ;;
         f) ;;
+        a) ;;
         r) ;;
         b) ;;
         t) ;;
@@ -137,6 +138,9 @@ while getopts "${optstring}" arg; do
         f)
             commit_msg_file=${OPTARG}
             generateTitle "Commit message set ${commit_msg_file}"
+            ;;
+        a)
+            git_add_untracked=true
             ;;
     esac
 done
@@ -239,7 +243,7 @@ while getopts "${optstring}" arg; do
                 if [[ -n `git status -s` ]]; then
                     commit_and_stash_name="[git-admin] Changes on ${host} $(date)"
 
-                    if [[ "${strategy}" =~ "add-untracked" ]]; then
+                    if [[ "${git_add_untracked}" = true ]]; then
                         echo "[INFO] Adding untracked files"
                         git add .
                     fi
@@ -301,20 +305,26 @@ while getopts "${optstring}" arg; do
                         git stash apply --quiet stash@{0}
                         git_ssh "git push --quiet -u origin ${branch}" "${ssh_key}"
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
+                        echo "[INFO] Git status"
+                        git status
                         exit 2
 
-                    elif [[ "${strategy}" =~ "merge-no-stash" ]]; then
-                        echo "[ERROR] Git pull failed, please read error output. You can hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
-                        echo "[WARNING] Git pull failed. repository is in a conflict state!"
-                        echo "[INFO] Please solve conflict merge the local branch manually from ${host}."
+                    elif [[ "${strategy}" =~ "no-stash" ]] || [[ "${strategy}" =~ "merge-or-fail" ]]; then
+                        echo "[ERROR] Git pull failed."
+                        echo "[WARNING] Repository is in a conflict state!"
+                        echo "[INFO] Please solve conflicts on the local branch manually from ${host} or hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
+                        echo "[INFO] Git status"
+                        git status
                         exit 2
                         
                     else
-                        echo "[ERROR] Git pull failed, please read error output. You can hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
+                        echo "[ERROR] Git pull failed."
                         echo "[WARNING] Git pull failed. Reseting to last commit and re-applying stashed changes."
                         git reset --hard HEAD~1
                         git stash apply --quiet stash@{0}
-                        echo "[INFO] Please merge the local branch manually from ${host}."
+                        echo "[INFO] Please merge the local branch manually from ${host} or hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
+                        echo "[INFO] Git status"
+                        git status
                         exit 2
                     fi
                 fi
