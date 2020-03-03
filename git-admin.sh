@@ -274,7 +274,7 @@ while getopts "${optstring}" arg; do
                         # If staged or unstaged changes in the tracked files in the working tree
                         if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
                         then
-                            echo "[INFO] Merging changes"
+                            echo "[INFO] Committing changes"
                             if [[ -n "${commit_msg_file}" ]]; then
                                 commit_msg_file_text=`cat "${commit_msg_file}"`
                                 git commit -a -m "${commit_and_stash_name}" -m "${commit_msg_file_text}"
@@ -287,7 +287,7 @@ while getopts "${optstring}" arg; do
                     echo "[INFO] No local changes"
                 fi
 
-                echo "[INFO] Pulling changes"
+                echo "[INFO] Merging"
                 if ! git_ssh "git pull --no-edit" "${ssh_key}"
                 then
                     # No error
@@ -301,9 +301,16 @@ while getopts "${optstring}" arg; do
                     # No error
                     # See at https://stackoverflow.com/questions/30208928/can-git-pull-automatically-stash-and-pop-pending-changes
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
-                        echo "[WARNING] Overwriting remote!"
+                        echo "[WARNING] Overwriting remote."
                         branch=`git rev-parse --abbrev-ref HEAD`
-                        git_ssh "git merge -s ours ${branch} --no-edit" "${ssh_key}"
+                        if ! git_ssh "git merge -s recursive -Xours ${branch} --no-edit" "${ssh_key}"
+                        then
+                            git stash
+                            git reset --hard HEAD~1
+                            git_ssh "git pull --rebase --no-edit --no-commit" "${ssh_key}"
+                            git stash pop
+                            git commit -a -m "[git-admin] Overwrite remote" -m "${commit_and_stash_name}"
+                        fi
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
