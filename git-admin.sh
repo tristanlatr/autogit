@@ -278,14 +278,14 @@ while getopts "${optstring}" arg; do
                 fi
 
                 echo "[INFO] Pulling changes"
-                if ! git_ssh "git pull" "${ssh_key}"
+                if ! git_ssh "git pull --no-edit" "${ssh_key}"
                 then
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
                         echo "[WARNING] Git pull failed. Reseting to last commit."
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" | fold -s
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
-                        git_ssh "git pull" "${ssh_key}"
+                        git_ssh "git pull --no-edit" "${ssh_key}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
@@ -295,14 +295,15 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Applying stash in order to push to new remote branch"
                         git stash apply --quiet stash@{0}
                         git_ssh "git push --quiet -u origin ${branch}" "${ssh_key}"
-                        
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
                         exit 2
+
                     elif [[ "${strategy}" =~ "merge-no-stash" ]]; then
                         echo "[ERROR] Git pull failed, please read error output. You can hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
                         echo "[WARNING] Git pull failed. repository is in a conflict state!"
                         echo "[INFO] Please solve conflict merge the local branch manually from ${host}."
                         exit 2
+                        
                     else
                         echo "[ERROR] Git pull failed, please read error output. You can hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
                         echo "[WARNING] Git pull failed. Reseting to last commit and re-applying stashed changes."
