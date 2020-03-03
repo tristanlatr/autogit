@@ -80,7 +80,6 @@ git_ssh(){
         return_val=$?
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
-        echo "[INFO] SSH key not set"
         bash -c $1
         return_val=$?
     fi
@@ -94,6 +93,7 @@ repositories=()
 ssh_key=""
 git_clone_url=""
 commit_msg_file=""
+commit_msg=""
 git_add_untracked=false
 optstring="hk:c:f:ar:b:t:u:i:"
 generateTitle "git-admin on ${host}"
@@ -139,6 +139,7 @@ while getopts "${optstring}" arg; do
         f)
             commit_msg_file=${OPTARG}
             generateTitle "Commit message set ${commit_msg_file}"
+            commit_msg=`cat_"${commit_msg_file}"`
             ;;
         a)
             git_add_untracked=true
@@ -274,8 +275,8 @@ while getopts "${optstring}" arg; do
                     if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
                     then
                         echo "[INFO] Committing changes"
-                        if [[ -n "${commit_msg_file}" ]]; then
-                            git commit -a -m "${commit_and_stash_name}" -m "$(cat ${commit_msg_file})"
+                        if [[ -n "${commit_msg}" ]]; then
+                            git commit -a -m "${commit_and_stash_name}" -m "${commit_msg}"
                         else
                             git commit -a -m "${commit_and_stash_name}"
                         fi
@@ -300,7 +301,6 @@ while getopts "${optstring}" arg; do
                     # Stash, pull, apply and commit changes.
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         echo "[WARNING] Git pull failed. Overwriting remote."
-                        echo "[INFO] Reseting"
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling"
                         set +e
@@ -312,8 +312,9 @@ while getopts "${optstring}" arg; do
                             git checkout --theirs -- ${changed_file}
                             git add ${changed_file}
                         done
-                        if [[ -n "${commit_msg_file}" ]]; then
-                            git commit -a -m "[Overwrite]${commit_and_stash_name}" -m "$(cat ${commit_msg_file})"
+                        echo "[INFO] Committing changes"
+                        if [[ -n "${commit_msg}" ]]; then
+                            git commit -a -m "[Overwrite]${commit_and_stash_name}" -m "${commit_msg}"
                         else
                             git commit -a -m "[Overwrite]${commit_and_stash_name}"
                         fi
