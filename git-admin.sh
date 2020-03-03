@@ -258,7 +258,7 @@ while getopts "${optstring}" arg; do
                         if ! git stash save "${commit_and_stash_name}"
                         then
                             echo "[ERROR] Unable to save stash"
-                            echo "[INFO] Please solve conflicts and clean working tree from the localhost (${host}) or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
+                            echo "[INFO] Please solve conflicts and clean working tree manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
                             generateTitle "End. Error: Repository is in a conflict state"
                             exit 7
                         fi
@@ -284,16 +284,16 @@ while getopts "${optstring}" arg; do
                 if ! with_ssh_key "git pull --no-edit" "${ssh_key}"
                 then
                     # No error
-                    if [[ "${strategy}" =~ "or-stash" ]]; then
-                        echo "[WARNING] Git pull failed. Reseting to last commit."
+                    if [[ "${strategy}" =~ "merge-or-stash" ]]; then
+                        echo "[WARNING] Merge failed. Reseting to last commit."
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" | fold -s
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
                         with_ssh_key "git pull --no-edit" "${ssh_key}"
                     
                     # Force overwrite
-                    elif [[ "${strategy}" =~ "overwrite" ]]; then
-                        echo "[WARNING] Git pull failed. Overwriting remote."
+                    elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
+                        echo "[WARNING] Merge failed. Overwriting remote."
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes with --no-commit flag"
                         if ! with_ssh_key "git pull --no-edit --no-commit" "${ssh_key}"
@@ -322,7 +322,7 @@ while getopts "${optstring}" arg; do
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
-                        echo "[WARNING] Git pull failed. Creating a new remote branch ${conflit_branch}"
+                        echo "[WARNING] Merge failed. Creating a new remote branch ${conflit_branch}"
                         git reset --hard HEAD~1
                         git checkout -b ${conflit_branch}
                         echo "[INFO] Applying stash in order to push to new remote branch"
@@ -333,18 +333,18 @@ while getopts "${optstring}" arg; do
                         exit 2
 
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
-                        echo "[ERROR] Git pull failed."
+                        echo "[ERROR] Merge failed."
                         echo "[WARNING] Repository is in a conflict state!"
-                        echo "[INFO] Please solve conflicts on the local branch manually from ${host} or hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
+                        echo "[INFO] Please solve conflicts and clean working tree manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
                         generateTitle "End. Error: Repository is in a conflict state"
                         exit 2
                     
                     else
-                        echo "[ERROR] Git pull failed."
+                        echo "[ERROR] Merge failed."
                         echo "[WARNING] Reseting to last commit and re-applying stashed changes."
                         git reset --hard HEAD~1
                         git stash apply --quiet stash@{0}
-                        echo "[INFO] Please merge the local branch manually from ${host} or hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
+                        echo "[INFO] Merge failed, use '-u merge-overwrite' to overwrite remote content or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
                         generateTitle "End. Error: nothing changed"
                         exit 2
                     fi
