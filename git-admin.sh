@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Titles
+# Titles generator
 symbol="*"
 paddingSymbol=" "
 lineLength=70
