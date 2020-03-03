@@ -364,7 +364,7 @@ while getopts "${optstring}" arg; do
                     fi
                 else
                     set +e
-                    echo "[INFO] Merge success, cleaning"
+                    echo "[INFO] Merge success"
                     branch=`git rev-parse --abbrev-ref HEAD`
                     tail_n_arg=$(( ${nb_stash_to_keep} + 2))
                     stashes=`git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
