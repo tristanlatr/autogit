@@ -275,8 +275,7 @@ while getopts "${optstring}" arg; do
                     then
                         echo "[INFO] Committing changes"
                         if [[ -n "${commit_msg_file}" ]]; then
-                            commit_msg_file_text=`cat "${commit_msg_file}"`
-                            git commit -a -m "${commit_and_stash_name}" -m "${commit_msg_file_text}"
+                            git commit -a -m "${commit_and_stash_name}" -m "$(cat ${commit_msg_file})"
                         else
                             git commit -a -m "${commit_and_stash_name}"
                         fi
@@ -297,25 +296,28 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull --no-edit" "${ssh_key}"
                     # Force overwrite
-                    # No error
+                    # No error, but it can still fail !
                     # Stash, pull, apply and commit changes.
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         echo "[WARNING] Git pull failed. Overwriting remote."
                         echo "[INFO] Reseting"
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling"
-                        if ! git_ssh "git pull --no-edit --no-commit" "${ssh_key}"
-                        then
-                            echo "[INFO] Git pull failed --no-commit"
-                        fi
+                        set +e
+                        git_ssh "git pull --no-edit --no-commit" "${ssh_key}"
                         echo "[INFO] Apply stash"
                         git stash apply --quiet stash@{0}
+                        set -e
                         for changed_file in `git ls-tree --full-tree -r --name-only HEAD`; do
                             echo "[INFO] Overwriting ${changed_file}"
                             git checkout --ours -- ${changed_file}
                             git add ${changed_file}
                         done
-                        git commit -a -m "[Overwrite] ${commit_and_stash_name}" -m "${commit_msg_file_text}"
+                        if [[ -n "${commit_msg_file}" ]]; then
+                            git commit -a -m "[Overwrite]${commit_and_stash_name}" -m "$(cat ${commit_msg_file})"
+                        else
+                            git commit -a -m "[Overwrite]${commit_and_stash_name}"
+                        fi
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
