@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Titles generator
 symbol="*"
 paddingSymbol=" "
@@ -26,7 +25,6 @@ function generateTitle() {
     fi
     echo "$line"
 }
-
 #Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t,'
@@ -43,7 +41,7 @@ usage(){
     echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Only remote 'origin' can be used. Warning make sure all repositories exists, multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone. Required." | fold -s
     echo -e "\t-b <Branch>\tSwitch to the specified branch or tag. Fail if changed files in working tree, please merge changes first." | fold -s
     echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can adopt 6 strategies. This feature supports multiple repo values !" | fold -s
-    
+    echo
     echo -e "\t\t- 'merge' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-overwrite-remote' -> save changes as stash, apply them, commit, pull and push, if pull fails, use git pull --rebase --autostash and merge . Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-branch' -> save changes as stash, apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote. Require a write access to git server." | fold -s
@@ -51,6 +49,7 @@ usage(){
     echo -e "\t\t- 'merge-no-stash' -> commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Git stash will fail if your in the midle of a merge, this will skip the git stash step. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-stash' -> save changes as stash, apply them, commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash) Require a write access to git server." | fold -s    
     echo -e "\t\t- 'stash' -> stash the changes and pull. Do not require a write acces to git server." | fold -s
+    echo
     echo -e "\t-a\tAdd untracked files to git. To use with '-u <strategy>'."
     echo -e "\t-t <CommitSAH1>\tHard reset the local branch to the specified commit. Multiple repo values are not supported by this feature" | fold -s
     echo -e "\t-i <Number of commits to show>\tShows informations." | fold -s
@@ -291,12 +290,21 @@ while getopts "${optstring}" arg; do
                 echo "[INFO] Pulling changes"
                 if ! git_ssh "git pull --no-edit" "${ssh_key}"
                 then
+                    # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
                         echo "[WARNING] Git pull failed. Reseting to last commit."
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" | fold -s
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull --no-edit" "${ssh_key}"
+                    # No error
+                    elif [[ "${strategy}" =~ "merge-overwrite-remote" ]]; then
+                        echo "[WARNING] Overwriting remote!"
+                        git config pull.rebase true
+                        git config rebase.autoStash true
+                        git_ssh "git pull --no-edit" "${ssh_key}"
+                        git config pull.rebase false
+                        git config rebase.autoStash false
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
@@ -307,33 +315,29 @@ while getopts "${optstring}" arg; do
                         git stash apply --quiet stash@{0}
                         git_ssh "git push --quiet -u origin ${branch}" "${ssh_key}"
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
-                        echo "[INFO] Git status"
+                        generateTitle "Git status ${folder}"
                         git status
+                        generateTitle "End. Warning: Repository is on a new branch"
                         exit 2
 
                     elif [[ "${strategy}" =~ "no-stash" ]] || [[ "${strategy}" =~ "merge-or-fail" ]]; then
                         echo "[ERROR] Git pull failed."
                         echo "[WARNING] Repository is in a conflict state!"
                         echo "[INFO] Please solve conflicts on the local branch manually from ${host} or hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
-                        echo "[INFO] Git status"
+                        generateTitle "Git status ${folder}"
                         git status
+                        generateTitle "End. Error: Repository is in a conflict state"
                         exit 2
-
-                    elif [[ "${strategy}" =~ "merge-overwrite-remote" ]]; then
-                        echo "[WARNING] Overwriting remote!"
-                        git config pull.rebase true
-                        git config rebase.autoStash true
-                        git_ssh "git pull --no-edit" "${ssh_key}"
-                        git config pull.rebase false
-                        git config rebase.autoStash false
+                    
                     else
                         echo "[ERROR] Git pull failed."
                         echo "[WARNING] Git pull failed. Reseting to last commit and re-applying stashed changes."
                         git reset --hard HEAD~1
                         git stash apply --quiet stash@{0}
                         echo "[INFO] Please merge the local branch manually from ${host} or hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
-                        echo "[INFO] Git status"
+                        generateTitle "Git status ${folder}"
                         git status
+                        generateTitle "End. Warning: nothing changed"
                         exit 2
                     fi
                 fi
