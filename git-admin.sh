@@ -31,7 +31,7 @@ IFS=$'\n\t,'
 
 usage(){
     generateTitle "Usage"
-    echo "Usage: $0 [-h] [-k <Key auth for git repo>] [-c <git remote URL>] (-r <Repositorie(s) path(s)>) [-b <Branch>] [-u <Strategy>] [-t <Commit hash>] [-i <Number of commits to show>]" | fold -s
+    echo "Usage: $0 [-h] [-k <Key auth for git repo>] [-c <git remote URL>] (-r <Repositorie(s) path(s)>) [-b <Branch>] [-u <Strategy>] [-a] [-f <commit msg file>] [-t <Commit hash>] [-i <Number of commits to show>]" | fold -s
     echo
     echo "This script is designed to programatically manage merge, pull and push feature on git repository." | fold -s
     echo
@@ -40,7 +40,7 @@ usage(){
     echo -e "\t-c <Url>\tURL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several reposities, the same URL will used for all. Multiple repo values are not supported by this feature." | fold -s
     echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Only remote 'origin' can be used. Warning make sure all repositories exists, multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone. Required." | fold -s
     echo -e "\t-b <Branch>\tSwitch to the specified branch or tag. Fail if changed files in working tree, please merge changes first." | fold -s
-    echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can adopt 6 strategies. This feature supports multiple repo values !" | fold -s
+    echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can adopt 7 strategies. This feature supports multiple repo values !" | fold -s
     echo
     echo -e "\t\t- 'merge' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-overwrite' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset, pull, re-apply saved changes, accept only local changes in the merge, commit and push to remote. Require a write access to git server." | fold -s
@@ -50,7 +50,8 @@ usage(){
     echo -e "\t\t- 'merge-or-stash' -> save changes as stash, apply them, commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash) Require a write access to git server." | fold -s    
     echo -e "\t\t- 'stash' -> stash the changes and pull. Do not require a write acces to git server." | fold -s
     echo
-    echo -e "\t-a\tAdd untracked files to git. To use with '-u <strategy>'."
+    echo -e "\t-a\tAdd untracked files to git. To use with '-u <Strategy>'."
+    echo -e "\t-f <Commit msg file>\tSpecify a commit message from a file. To use with '-u <Strategy>'." | fold -s
     echo -e "\t-t <CommitSAH1>\tHard reset the local branch to the specified commit. Multiple repo values are not supported by this feature" | fold -s
     echo -e "\t-i <Number of commits to show>\tShows informations." | fold -s
     echo
@@ -92,7 +93,6 @@ repositoryIsSet=false
 repositories=()
 ssh_key=""
 git_clone_url=""
-commit_msg_file=""
 commit_msg=""
 git_add_untracked=false
 optstring="hk:c:f:ar:b:t:u:i:"
@@ -129,17 +129,15 @@ while getopts "${optstring}" arg; do
     case "${arg}" in
         k)
             ssh_key=${OPTARG}
-            generateTitle "SSH key set ${ssh_key}"
+            echo "[INFO] SSH key set ${ssh_key}"
             ;;
         c)
             git_clone_url=${OPTARG}
-            generateTitle "Git clone URL set ${git_clone_url}"
+            echo "[INFO] Git clone URL set ${git_clone_url}"
             ;;
-
         f)
-            commit_msg_file=${OPTARG}
-            generateTitle "Commit message set ${commit_msg_file}"
-            commit_msg=`cat_"${commit_msg_file}"`
+            echo "[INFO] Commit message set ${OPTARG}"
+            commit_msg=`cat "${OPTARG}"`
             ;;
         a)
             git_add_untracked=true
