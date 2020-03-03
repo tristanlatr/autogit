@@ -46,7 +46,6 @@ usage(){
     echo -e "\t\t- 'merge-overwrite' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset, pull, re-apply saved changes, accept only local changes in the merge, commit and push to remote. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-branch' -> save changes as stash, apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-fail' -> save changes as stash, apply them, commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Require a write access to git server." | fold -s
-    echo -e "\t\t- 'merge-no-stash' -> commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Git stash will fail if your in the midle of a merge, this will skip the git stash step. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-stash' -> save changes as stash, apply them, commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash) Require a write access to git server." | fold -s    
     echo -e "\t\t- 'stash' -> stash the changes and pull. Do not require a write acces to git server." | fold -s
     echo
@@ -58,18 +57,19 @@ usage(){
     echo -e "\tExamples : " | fold -s
     echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -u merge -i 5" | fold -s
     echo -e "\t\tCheckout the stable branch, pull changes and show infos of the repository (last 5 commits)." | fold -s
-    echo -e "\t\t$0 -r ~/isrm-portal-conf/ -t 00a3a3f" | fold -s
+    echo -e "\t\t'$0 -r ~/isrm-portal-conf/ -t 00a3a3f'" | fold -s
     echo -e "\t\tHard reset the repository to the specified commit." | fold -s
-    echo -e "\t\t$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u merge" | fold -s
+    echo -e "\t\t'$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u merge'" | fold -s
     echo -e "\t\tInit a repo and pull master by default. Use the specified SSH to authenticate." | fold -s
     echo
     echo -e "\tReturn codes : "
     echo -e "\t\t1 Other errors"
-    echo -e "\t\t2 Git pull failed"
+    echo -e "\t\t2 Git merge failed"
     echo -e "\t\t3 Syntax mistake"
     echo -e "\t\t4 Git reposirtory does't exist and -c URL is not set"
     echo -e "\t\t5 Repository not set"
     echo -e "\t\t6 Can't checkout with unstaged files in working tree"
+    echo -e "\t\t7 Already in the middle of a merge"
 }
 
 with_ssh_key(){
@@ -236,7 +236,7 @@ while getopts "${optstring}" arg; do
                 strategy=${OPTARG}
 
                 if [[ ! "${strategy}" =~ "merge" ]] && [[ ! "${strategy}" =~ "stash" ]]; then
-                    echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see $0 '-h' for more infos." | fold -s
+                    echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see '$0 -h' for more infos." | fold -s
                     exit 3
                 fi
                 # If there is any kind of changes in the working tree
@@ -251,32 +251,28 @@ while getopts "${optstring}" arg; do
                     echo "[INFO] Locally changed files:"
                     git status -s
 
-                    if [[ ! "${strategy}" =~ "no-stash" ]];then
-                        # If staged or unstaged changes in the tracked files in the working tree
-                        if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
-                        then
-                            echo "[INFO] Saving changes as a git stash, you can apply stash manually from ${host}. 'git stash list' help you determine the stash index (n) of this changes (\"${commit_and_stash_name}\"), then use 'git stash apply stash@{n}'." | fold -s
-                            if ! git stash save "${commit_and_stash_name}"
-                            then
-                                echo "[ERROR] You seem to be in the middle of a merge, you can use '-u merge-no-stash' update strategy to skip the git stash save step. If the merge fail, the git repo will be in a conflict state."
-                                exit 2
-                            fi
-
-                            if [[ "${strategy}" =~ "merge" ]]; then
-                                echo "[INFO] Applying stash in order to merge"
-                                git stash apply --quiet stash@{0}
-                            fi
-                        fi
-                    fi
-
                     # If staged or unstaged changes in the tracked files in the working tree
                     if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
                     then
-                        echo "[INFO] Committing changes"
-                        if [[ -n "${commit_msg}" ]]; then
-                            git commit -a -m "${commit_and_stash_name}" -m "${commit_msg}"
-                        else
-                            git commit -a -m "${commit_and_stash_name}"
+                        echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"." | fold -s
+                        if ! git stash save "${commit_and_stash_name}"
+                        then
+                            echo "[ERROR] Unable to save stash"
+                            echo "[INFO] Please solve conflicts and clean working tree from the localhost (${host}) or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
+                            generateTitle "End. Error: Repository is in a conflict state"
+                            exit 7
+                        fi
+
+                        if [[ "${strategy}" =~ "merge" ]]; then
+                            echo "[INFO] Applying stash in order to merge"
+                            git stash apply --quiet stash@{0}
+
+                            echo "[INFO] Committing changes"
+                            if [[ -n "${commit_msg}" ]]; then
+                                git commit -a -m "${commit_and_stash_name}" -m "${commit_msg}"
+                            else
+                                git commit -a -m "${commit_and_stash_name}"
+                            fi
                         fi
                     fi
 
@@ -288,7 +284,7 @@ while getopts "${optstring}" arg; do
                 if ! with_ssh_key "git pull --no-edit" "${ssh_key}"
                 then
                     # No error
-                    if [[ "${strategy}" =~ "merge-or-stash" ]]; then
+                    if [[ "${strategy}" =~ "or-stash" ]]; then
                         echo "[WARNING] Git pull failed. Reseting to last commit."
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" | fold -s
                         git reset --hard HEAD~1
@@ -296,7 +292,7 @@ while getopts "${optstring}" arg; do
                         with_ssh_key "git pull --no-edit" "${ssh_key}"
                     
                     # Force overwrite
-                    elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
+                    elif [[ "${strategy}" =~ "overwrite" ]]; then
                         echo "[WARNING] Git pull failed. Overwriting remote."
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes with --no-commit flag"
@@ -333,10 +329,10 @@ while getopts "${optstring}" arg; do
                         git stash apply --quiet stash@{0}
                         with_ssh_key "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
-                        generateTitle "End. Warning: Repository is on a new branch"
+                        generateTitle "End. Error: Repository is on a new branch"
                         exit 2
 
-                    elif [[ "${strategy}" =~ "no-stash" ]] || [[ "${strategy}" =~ "merge-or-fail" ]]; then
+                    elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
                         echo "[ERROR] Git pull failed."
                         echo "[WARNING] Repository is in a conflict state!"
                         echo "[INFO] Please solve conflicts on the local branch manually from ${host} or hard reset to previous commit using '-t <commitSHA>' option, your local changes will be erased." | fold -s
