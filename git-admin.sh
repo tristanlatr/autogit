@@ -298,6 +298,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull --no-edit" "${ssh_key}"
                     # No error
+                    # See at https://stackoverflow.com/questions/30208928/can-git-pull-automatically-stash-and-pop-pending-changes
                     elif [[ "${strategy}" =~ "merge-overwrite-remote" ]]; then
                         echo "[WARNING] Overwriting remote!"
                         git config pull.rebase true
