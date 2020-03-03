@@ -53,7 +53,7 @@ usage(){
     echo -e "\t-a\tAdd untracked files to git. To use with '-u <Strategy>'."
     echo -e "\t-f <Commit msg file>\tSpecify a commit message from a file. To use with '-u <Strategy>'." | fold -s
     echo -e "\t-t <CommitSAH1>\tHard reset the local branch to the specified commit. Multiple repo values are not supported by this feature" | fold -s
-    echo -e "\t-i <Number of commits to show>\tShows informations." | fold -s
+    echo -e "\t-i <Number of commits to show>\tShows tracked files, git status and commit history of last n commits." | fold -s
     echo
     echo -e "\tExamples : " | fold -s
     echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -u merge -i 5" | fold -s
@@ -363,11 +363,10 @@ while getopts "${optstring}" arg; do
             generateTitle "Informations"
             for folder in ${repositories}; do
                 cd $folder
-                generateTitle "Last ${OPTARG} commits activity ${folder}"
-                git --no-pager log -n ${OPTARG} --graph
-                #git --no-pager log --graph --all --since "$(date -d "${OPTARG} days ago" "+ %Y-%m-%dT%T")"
                 generateTitle "Tracked files ${folder}"
                 git ls-tree --full-tree -r --name-only HEAD
+                generateTitle "Last ${OPTARG} commits activity ${folder}"
+                git --no-pager log -n ${OPTARG} --graph                
                 generateTitle "Git status ${folder}"
                 git status
                 cd "${init_folder}"
