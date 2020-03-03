@@ -293,8 +293,10 @@ while getopts "${optstring}" arg; do
                 fi
 
                 echo "[INFO] Merging"
+                set -e
                 if ! with_ssh_key "git pull" "${ssh_key}"
                 then
+                    set +e
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
                         echo "[WARNING] Merge failed. Reseting to last commit."
@@ -361,6 +363,7 @@ while getopts "${optstring}" arg; do
                         exit 2
                     fi
                 else
+                    set +e
                     echo "[INFO] Merge success, cleaning"
                     branch=`git rev-parse --abbrev-ref HEAD`
                     tail_n_arg=$(( ${nb_stash_to_keep} + 2))
