@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Titles 123ertyui
+# Titles generator
 symbol="*"
 paddingSymbol=" "
 lineLength=70
