@@ -1,7 +1,7 @@
 ### git-admin
 ```
 **********************************************************************
-*                     git-admin on Tristans-MBP                      *
+*              git-admin on Tristans-MacBook-Pro.local               *
 **********************************************************************
 **********************************************************************
 *                               Usage                                *
@@ -23,24 +23,33 @@ branch. Required if the repo folder doesn't exists. Warning, if you declare
 several reposities, the same URL will used for all. Multiple repo values are 
 not supported by this feature.
 	-r <Paths>	Path to managed repository, can be multiple comma 
-separated. Warning make sure all repositories exists., multiple repo values are 
-not supported by the git clone feature '-c'. Repository path(s) should end with 
-the default git repo folder name after git clone Required.
+separated. Only remote 'origin' can be used. Warning make sure all repositories 
+exists, multiple repo values are not supported by the git clone feature '-c'. 
+Repository path(s) should end with the default git repo folder name after git 
+clone. Required.
 	-b <Branch>	Switch to the specified branch or tag.
-			Branch must already exist in the local repository copy 
-(run git checkout origin/branch from the host before).
 	-u <Strategy>	Update the current branch from and to upstream, can 
-adopt 3 strategies. This feature supports multiple repo values !
-		'merge' -> commit, pull and push. Fail if merge fail. Require 
-valid git server authentication.
-		'stash' -> stash the changes and pull.
-		'merge-or-stash' -> stash, commit, pull and push, if pull fails 
-revert commit and pull. Require valid git server authentication.
-		'add-untracked-merge' -> git add untracked files, and merge.
-		'add-untracked-stash' -> git add untracked files, stash the 
-changes and pull.
-		'add-untracked-merge-or-stash' -> git add untracked files, 
-merge or stash changes. Require valid git server authentication.
+adopt 6 strategies. This feature supports multiple repo values !
+		- 'merge' -> save changes as stash, apply them, commit, pull 
+and push, if pull fails, reset pull and re-apply saved changes (leaving the 
+repo in the same state as before calling the script). Require a write access to 
+git server.
+		- 'merge-or-branch' -> save changes as stash, apply them, 
+commit, pull and push, if pull fails, create a new branch and push changes to 
+remote. Require a write access to git server.
+		- 'merge-or-fail' -> save changes as stash, apply them, commit, 
+pull and push, if pull fails, will leave the git repositiry in a conflict 
+state. Require a write access to git server.
+		- 'merge-no-stash' -> commit, pull and push, if pull fails, 
+will leave the git repositiry in a conflict state. Git stash will fail if your 
+in the midle of a merge, this will skip the git stash step. Require a write 
+access to git server.
+		- 'merge-or-stash' -> save changes as stash, apply them, 
+commit, pull and push, if pull fails, revert commit and pull (your changes will 
+be saved as git stash) Require a write access to git server.
+		- 'stash' -> stash the changes and pull. Do not require a write 
+acces to git server.
+	-a	Add untracked files to git.
 	-t <CommitSAH1>	Hard reset the FIRST local branch to the specified 
 commit.  Multiple repo values are not supported by this feature
 	-i <Number of commits to show>	Shows informations.
