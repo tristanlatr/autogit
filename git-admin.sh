@@ -41,24 +41,26 @@ usage(){
     echo -e "\t-k <Key>\tPath to a trusted ssh key to authenticate against the git server (push). Required if git authentication is not already working with default key." | fold -s
     echo -e "\t-c <Url>\tURL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several reposities, the same URL will used for all. Multiple repo values are not supported by this feature." | fold -s
     echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Only remote 'origin' can be used. Warning make sure all repositories exists, multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone. Required." | fold -s
-    echo -e "\t-b <Branch>\tSwitch to the specified branch or tag." | fold -s
+    echo -e "\t-b <Branch>\tSwitch to the specified branch or tag. Fail if changed files in working tree, please merge changes first." | fold -s
     echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can adopt 6 strategies. This feature supports multiple repo values !" | fold -s
+    
     echo -e "\t\t- 'merge' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Require a write access to git server." | fold -s
+    echo -e "\t\t- 'merge-overwrite-remote' -> save changes as stash, apply them, commit, pull and push, if pull fails, use git pull --rebase --autostash and merge . Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-branch' -> save changes as stash, apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-fail' -> save changes as stash, apply them, commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-no-stash' -> commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Git stash will fail if your in the midle of a merge, this will skip the git stash step. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-stash' -> save changes as stash, apply them, commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash) Require a write access to git server." | fold -s    
     echo -e "\t\t- 'stash' -> stash the changes and pull. Do not require a write acces to git server." | fold -s
-    echo -e "\t-a\tAdd untracked files to git."
-    echo -e "\t-t <CommitSAH1>\tHard reset the FIRST local branch to the specified commit.  Multiple repo values are not supported by this feature" | fold -s
+    echo -e "\t-a\tAdd untracked files to git. To use with '-u <strategy>'."
+    echo -e "\t-t <CommitSAH1>\tHard reset the local branch to the specified commit. Multiple repo values are not supported by this feature" | fold -s
     echo -e "\t-i <Number of commits to show>\tShows informations." | fold -s
     echo
     echo -e "\tExamples : " | fold -s
     echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -u merge -i 5" | fold -s
     echo -e "\t\tCheckout the stable branch, pull changes and show infos of the repository (last 5 commits)." | fold -s
-    echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -t 00a3a3f" | fold -s
-    echo -e "\t\tCheckout the stable branch and hard reset the repository to the specified commit." | fold -s
-    echo -e "\t\t$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u merge-or-stash " | fold -s
+    echo -e "\t\t$0 -r ~/isrm-portal-conf/ -t 00a3a3f" | fold -s
+    echo -e "\t\tHard reset the repository to the specified commit." | fold -s
+    echo -e "\t\t$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u merge" | fold -s
     echo -e "\t\tInit a repo and pull master by default. Use the specified SSH to authenticate." | fold -s
     echo
     echo -e "\tReturn codes : "
@@ -316,7 +318,14 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Git status"
                         git status
                         exit 2
-                        
+
+                    elif [[ "${strategy}" =~ "merge-overwrite-remote" ]]; then
+                        echo "[WARNING] Overwriting remote!"
+                        git config pull.rebase true
+                        git config rebase.autoStash true
+                        git_ssh "git pull --no-edit" "${ssh_key}"
+                        git config pull.rebase false
+                        git config rebase.autoStash false
                     else
                         echo "[ERROR] Git pull failed."
                         echo "[WARNING] Git pull failed. Reseting to last commit and re-applying stashed changes."
