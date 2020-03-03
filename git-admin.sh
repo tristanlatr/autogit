@@ -349,9 +349,14 @@ while getopts "${optstring}" arg; do
                         exit 2
                     fi
                 else
-                    echo "[INFO] Clearing stashes, leaving last 5 stashes"
-                    for stash in `git stash list | awk -F ':' '{print$1}' | tail -n+7`; do
-                        git stash drop ${stash}
+                    branch=`git rev-parse --abbrev-ref HEAD`
+                    echo "[INFO] Clearing stashes of current branch (${branch}), leaving last 5 stashes" | fold -s
+                    for stash in `git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+7`; do
+                        if ! git stash drop --quiet ${stash}
+                        then
+                            stash_name=`git stash list | grep "On ${branch}" | grep "${stash}"`
+                            echo "[WARNING] A stash could not be deleted: ${stash_name}"
+                        fi
                     done
                 
                 fi
