@@ -1,5 +1,5 @@
 #!/bin/bash
-# Titles generator
+# Titles generator from the menu generator.
 symbol="*"
 paddingSymbol=" "
 lineLength=70
