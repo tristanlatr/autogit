@@ -43,7 +43,7 @@ usage(){
     echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can adopt 6 strategies. This feature supports multiple repo values !" | fold -s
     echo
     echo -e "\t\t- 'merge' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Require a write access to git server." | fold -s
-    echo -e "\t\t- 'merge-overwrite' -> save changes as stash, apply them, commit, pull and push, if pull fails, use git pull --rebase --autostash and merge . Require a write access to git server." | fold -s
+    echo -e "\t\t- 'merge-overwrite' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset, pull, re-apply saved changes, accept only local changes in the merge, commit and push to remote. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-branch' -> save changes as stash, apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-or-fail' -> save changes as stash, apply them, commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-no-stash' -> commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Git stash will fail if your in the midle of a merge, this will skip the git stash step. Require a write access to git server." | fold -s
@@ -297,20 +297,19 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Pulling changes"
                         git_ssh "git pull --no-edit" "${ssh_key}"
                     # Force overwrite
-                    # No error at all
-                    # Stash, pull, apply and commit changes.
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         echo "[WARNING] Git pull failed. Overwriting remote."
                         git reset --hard HEAD~1
-                        echo "[INFO] Pulling"
+                        echo "[INFO] Pull no-commit"
                         set +e
                         git_ssh "git pull --no-edit --no-commit" "${ssh_key}"
-                        echo "[INFO] Apply stash"
+                        echo "[INFO] Applying stash in order to merge"
                         git stash apply --quiet stash@{0}
                         set -e
-                        for changed_file in `git ls-tree --full-tree -r --name-only HEAD`; do
-                            git checkout --theirs -- ${changed_file}
-                            git add ${changed_file}
+                        echo "[INFO] Overwriting files"
+                        for file in `git ls-tree --full-tree -r --name-only HEAD`; do
+                            git checkout --theirs -- ${file}
+                            git add ${file}
                         done
                         echo "[INFO] Committing changes"
                         if [[ -n "${commit_msg}" ]]; then
