@@ -72,7 +72,7 @@ usage(){
     echo -e "\t\t6 Can't checkout with unstaged files in working tree"
 }
 
-git_ssh(){
+with_ssh_key(){
     return_val=-1
     if [[ ! -z "$2" ]]; then
         echo "[INFO] Using SSH key"
@@ -155,8 +155,8 @@ while getopts "${optstring}" arg; do
 
                 if [[ -d "$folder" ]]; then
                     cd $folder
-                    git_ssh "git remote update" "${ssh_key}"
-                    git_ssh "git --no-pager branch -a -vv" "${ssh_key}"
+                    with_ssh_key "git remote update" "${ssh_key}"
+                    with_ssh_key "git --no-pager branch -a -vv" "${ssh_key}"
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
                         echo "[INFO] Repository do no exist, initating it."
@@ -164,8 +164,8 @@ while getopts "${optstring}" arg; do
                         cd ${folder}
                         git init
                         git remote add -t master origin ${git_clone_url} 
-                        git_ssh "git remote update" "${ssh_key}"
-                        git_ssh "git --no-pager branch -a -vv" "${ssh_key}"
+                        with_ssh_key "git remote update" "${ssh_key}"
+                        with_ssh_key "git --no-pager branch -a -vv" "${ssh_key}"
                     else
                         echo "[ERROR] Git reposirtory do not exist and '-c <URL>' is not set. Please set git URL to be able to initiate the repo" |  fold -s
                         exit 4
@@ -285,7 +285,7 @@ while getopts "${optstring}" arg; do
                 fi
 
                 echo "[INFO] Merging"
-                if ! git_ssh "git pull --no-edit" "${ssh_key}"
+                if ! with_ssh_key "git pull --no-edit" "${ssh_key}"
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
@@ -293,14 +293,14 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" | fold -s
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
-                        git_ssh "git pull --no-edit" "${ssh_key}"
+                        with_ssh_key "git pull --no-edit" "${ssh_key}"
                     
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         echo "[WARNING] Git pull failed. Overwriting remote."
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes with --no-commit flag"
-                        if ! git_ssh "git pull --no-edit --no-commit" "${ssh_key}"
+                        if ! with_ssh_key "git pull --no-edit --no-commit" "${ssh_key}"
                         then
                             echo "[INFO] In the middle of a merge conflict"
                         else
@@ -331,7 +331,7 @@ while getopts "${optstring}" arg; do
                         git checkout -b ${conflit_branch}
                         echo "[INFO] Applying stash in order to push to new remote branch"
                         git stash apply --quiet stash@{0}
-                        git_ssh "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
+                        with_ssh_key "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
                         generateTitle "End. Warning: Repository is on a new branch"
                         exit 2
@@ -357,7 +357,7 @@ while getopts "${optstring}" arg; do
                 if [[ "${strategy}" =~ "merge" ]]; then
                     echo "[INFO] Pushing changes"
                     branch=`git rev-parse --abbrev-ref HEAD`
-                    git_ssh "git push --quiet -u origin ${branch}" "${ssh_key}"
+                    with_ssh_key "git push --quiet -u origin ${branch}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
             done
