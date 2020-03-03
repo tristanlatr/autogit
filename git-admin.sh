@@ -309,7 +309,6 @@ while getopts "${optstring}" arg; do
                         git stash apply --quiet stash@{0}
                         set -e
                         for changed_file in `git ls-tree --full-tree -r --name-only HEAD`; do
-                            echo "[INFO] Overwriting ${changed_file}"
                             git checkout --theirs -- ${changed_file}
                             git add ${changed_file}
                         done
