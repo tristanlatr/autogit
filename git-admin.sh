@@ -40,7 +40,7 @@ usage(){
     echo -e "\t-c <Url>\tURL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several reposities, the same URL will used for all. Multiple repo values are not supported by this feature." | fold -s
     echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Only remote 'origin' can be used. Warning make sure all repositories exists, multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone. Required." | fold -s
     echo -e "\t-b <Branch>\tSwitch to the specified branch or tag. Fail if changed files in working tree, please merge changes first." | fold -s
-    echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can adopt 7 strategies. This feature supports multiple repo values !" | fold -s
+    echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can several strategies. This feature supports multiple repo values !" | fold -s
     echo
     echo -e "\t\t- 'merge' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Require a write access to git server." | fold -s
     echo -e "\t\t- 'merge-overwrite' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset, pull, re-apply saved changes, accept only local changes in the merge, commit and push to remote. Require a write access to git server." | fold -s
@@ -350,14 +350,20 @@ while getopts "${optstring}" arg; do
                     fi
                 else
                     branch=`git rev-parse --abbrev-ref HEAD`
-                    echo "[INFO] Clearing stashes of current branch (${branch}), leaving last 5 stashes" | fold -s
-                    for stash in `git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+7 | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
-                        if ! git stash drop --quiet "${stash}"
-                        then
-                            stash_name=`git stash list | grep "On ${branch}" | grep "${stash}"`
-                            echo "[WARNING] A stash could not be deleted: ${stash_name}"
-                        fi
-                    done
+                    nb_stash_to_keep=10
+                    tail_n_arg=nb_stash_to_keep+2
+                    stashes=`git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
+                    if [[ -n "${stashes}" ]]; then
+                        echo "[INFO] Clearing old stashes on current branch (${branch}), last ${nb_stash_to_keep} stashes are kept" | fold -s
+                        # Dropping stashes from the oldest, reverse order
+                        for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
+                            if ! git stash drop --quiet "${stash}"
+                            then
+                                stash_name=`git stash list | grep "On ${branch}" | grep "${stash}"`
+                                echo "[WARNING] A stash could not be deleted: ${stash_name}"
+                            fi
+                        done
+                    fi
                 fi
 
                 if [[ "${strategy}" =~ "merge" ]]; then
