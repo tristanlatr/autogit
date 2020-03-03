@@ -348,6 +348,12 @@ while getopts "${optstring}" arg; do
                         generateTitle "End. Error: nothing changed"
                         exit 2
                     fi
+                else
+                    echo "[INFO] Clearing stashes, leaving last 5 stashes"
+                    for stash in `git stash list | awk -F ':' '{print$1}' | tail -n+7`; do
+                        git stash drop ${stash}
+                    done
+                
                 fi
 
                 if [[ "${strategy}" =~ "merge" ]]; then
@@ -379,5 +385,4 @@ while getopts "${optstring}" arg; do
     esac
 done
 shift "$((OPTIND-1))"
-
 generateTitle "End (success)"
