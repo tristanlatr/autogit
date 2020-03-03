@@ -351,7 +351,7 @@ while getopts "${optstring}" arg; do
                 else
                     branch=`git rev-parse --abbrev-ref HEAD`
                     nb_stash_to_keep=10
-                    tail_n_arg=nb_stash_to_keep+2
+                    tail_n_arg=nb_stash_to_keep + 2
                     stashes=`git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                     if [[ -n "${stashes}" ]]; then
                         echo "[INFO] Clearing old stashes on current branch (${branch}), last ${nb_stash_to_keep} stashes are kept" | fold -s
