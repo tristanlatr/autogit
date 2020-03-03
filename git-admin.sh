@@ -300,15 +300,23 @@ while getopts "${optstring}" arg; do
                         echo "[WARNING] Git pull failed. Overwriting remote."
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes with --no-commit flag"
-                        git_ssh "git pull --no-edit --no-commit" "${ssh_key}" || echo "[ERROR] Git pull successful, no need to overwrite."
-                        echo "[INFO] In the middle of a merge conflict"
+                        if ! git_ssh "git pull --no-edit --no-commit" "${ssh_key}"
+                        then
+                            echo "[INFO] In the middle of a merge conflict"
+                        else
+                            echo "[WARNING] Git pull successful, no need to overwrite."
+                        fi
                         echo "[INFO] Applying stash in order to merge"
-                        git stash apply --quiet stash@{0} ||  echo "[ERROR] Git stash apply successful, no need to overwrite"
-                        echo "[INFO] Overwriting files with stashed changes"
-                        for file in `git ls-tree --full-tree -r --name-only HEAD`; do
-                            git checkout --theirs -- ${file}
-                            git add ${file}
-                        done
+                        if ! git stash apply --quiet stash@{0}
+                        then
+                            echo "[INFO] Overwriting files with stashed changes"
+                            for file in `git ls-tree --full-tree -r --name-only HEAD`; do
+                                git checkout --theirs -- ${file}
+                                git add ${file}
+                            done
+                        else
+                            echo "[WARNING] Git stash apply successful, no need to overwrite"
+                        fi
                         echo "[INFO] Committing changes"
                         if [[ -n "${commit_msg}" ]]; then
                             git commit -a -m "[Overwrite]${commit_and_stash_name}" -m "${commit_msg}"
