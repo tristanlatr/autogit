@@ -156,7 +156,7 @@ while getopts "${optstring}" arg; do
                 if [[ -d "$folder" ]]; then
                     cd $folder
                     git_ssh "git remote update" "${ssh_key}"
-                    git_ssh "git branch -a -vv" "${ssh_key}"
+                    git_ssh "git --no-pager branch -a -vv" "${ssh_key}"
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
                         echo "[INFO] Repository do no exist, initating it."
@@ -165,7 +165,7 @@ while getopts "${optstring}" arg; do
                         git init
                         git remote add -t master origin ${git_clone_url} 
                         git_ssh "git remote update" "${ssh_key}"
-                        git_ssh "git branch -a -vv" "${ssh_key}"
+                        git_ssh "git --no-pager branch -a -vv" "${ssh_key}"
                     else
                         echo "[ERROR] Git reposirtory do not exist and '-c <URL>' is not set. Please set git URL to be able to initiate the repo" |  fold -s
                         exit 4
