@@ -74,8 +74,7 @@ usage(){
 }
 
 with_ssh_key(){
-    set +e
-    return_val=1
+    return_val=64
     if [[ ! -z "$2" ]]; then
         echo "[INFO] Using SSH key"
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
@@ -86,7 +85,6 @@ with_ssh_key(){
         bash -c $1
         return_val=$?
     fi
-    set -e
     return $return_val
 }
 
@@ -363,11 +361,12 @@ while getopts "${optstring}" arg; do
                         exit 2
                     fi
                 else
+                    echo "[INFO] Merge success, cleaning"
                     branch=`git rev-parse --abbrev-ref HEAD`
                     tail_n_arg=$(( ${nb_stash_to_keep} + 2))
                     stashes=`git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                     if [[ -n "${stashes}" ]]; then
-                        echo "[INFO] Clearing old stashes on current branch (${branch}), last ${nb_stash_to_keep} stashes are kept" | fold -s
+                        echo "[INFO] Cleaning old stashes on current branch (${branch}), last ${nb_stash_to_keep} stashes are kept" | fold -s
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
                             if ! git stash drop --quiet "${stash}"
