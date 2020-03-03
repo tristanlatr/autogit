@@ -259,7 +259,7 @@ while getopts "${optstring}" arg; do
                             echo "[INFO] Saving changes as a git stash, you can apply stash manually from ${host}. 'git stash list' help you determine the stash index (n) of this changes (\"${commit_and_stash_name}\"), then use 'git stash apply stash@{n}'." | fold -s
                             if ! git stash save "${commit_and_stash_name}"
                             then
-                                echo "[ERROR] You seem to be in the middle of a merge, you can use '-u merge-no-stash' update strategy to skip the git stash save step. If the merge fail, the git repo will be in a conflict state."
+                                echo "[ERROR] You seem to be in the middle of a merge, you can use '-u merge-no-stash' update strategy to skip the git stash save step. If the merge fail, the git repo will be in a conflict state. Note that wih 'merge-no-stash' option might trigger git pull to invvoke vim" | fold -s
                                 exit 2
                             fi
 
