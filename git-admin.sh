@@ -294,7 +294,7 @@ while getopts "${optstring}" arg; do
                     then
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
 
-                        if ! git stash ${git_stash_args} save "${commit_and_stash_name}"
+                        if ! git stash save ${git_stash_args} "${commit_and_stash_name}"
                         then
                             echo "[ERROR] Unable to save stash"
                             echo "[INFO] Please solve conflicts and clean working tree manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
