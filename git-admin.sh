@@ -32,8 +32,8 @@ IFS=$'\n\t,'
 
 quick_usage(){
     usage="
-    Usage: $0 [-h] [-k <SSH Key>] [-c <Git clone URL>] 
-    [-b <Branch>] [-u <Strategy>] [-a] [-f <Commit msg file>] 
+    Usage: $0 [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] 
+    [-u <Strategy>] [-a] [-m <Commit msg text> ][-f <Commit msg file>] 
     [-t <Commit hash to reset>] [-i <Number of commits to show>]
     -r <Repository path(s)>"
     echo "${usage}" | fold -s
@@ -78,7 +78,9 @@ usage(){
             - 'stash' -> Always update from remote. Stash the changes and pull. Should exit with code 0. Do not require a write acces to git server.
 
         -a  Add untracked files to git. To use with '-u <Strategy>'.
-       
+        
+        -m <Commit msg text>    The text will be used as the fist line of the commit message, then the generated name with timestamp and then the file content. This can be used with '-f'. To use with '-u <Strategy>'.
+        
         -f <Commit msg file>    Specify a commit message from a file. To use with '-u <Strategy>'.
         
         -t <CommitSAH1> Hard reset the local branch to the specified commit. Multiple repo values are not supported by this feature
@@ -106,6 +108,21 @@ usage(){
     echo "${usage}" | fold -s
 }
 
+# commit_local_changes "timestamp name" "msg text" "msg text from file"
+commit_local_changes(){
+    echo "[INFO] Committing changes"
+    if [[ -n "${3}" ]] && [[ -z "${2}" ]]; then
+        git commit -a -m "$(echo ${3} | head -1)" -m "${1}" -m "$(echo ${3} | tail -1)"
+    elif [[ -z "${3}" ]] && [[ -n "${2}" ]]; then
+        git commit -a -m "${2}" -m "${1}"
+    elif [[ -n "${3}" ]] && [[ -n "${2}" ]]; then
+        git commit -a -m "${2}" -m "${1}" -m "${3}"
+    else
+        git commit -a -m "${1}"
+    fi
+}
+
+# with_ssh_key "command" "ssh key path"
 with_ssh_key(){
     return_val=64
     set +e
@@ -130,16 +147,18 @@ repositoryIsSet=false
 repositories=()
 ssh_key=""
 git_clone_url=""
-commit_msg=""
+commit_msg_from_file=""
+commit_msg_text=""
 nb_stash_to_keep=10
 git_add_untracked=false
-optstring="hk:c:f:ar:b:t:u:i:"
+optstring="hk:c:m:f:ar:b:t:u:i:"
 
 while getopts "${optstring}" arg; do
     case "${arg}" in
         h) ;;
         k) ;;
         c) ;;
+        m) ;;
         f) ;;
         a) ;;
         r) ;;
@@ -175,8 +194,12 @@ while getopts "${optstring}" arg; do
             echo "[INFO] Git clone URL set ${git_clone_url}"
             ;;
         f)
+            echo "[INFO] Commit message file set ${OPTARG}"
+            commit_msg_from_file=`cat "${OPTARG}"`
+            ;;
+        m)
             echo "[INFO] Commit message set ${OPTARG}"
-            commit_msg=`cat "${OPTARG}"`
+            commit_msg_text="${OPTARG}"
             ;;
         a)
             git_add_untracked=true
@@ -320,12 +343,7 @@ while getopts "${optstring}" arg; do
                                 echo "[WARNING] Your changes are ot stashed"
                             fi
 
-                            echo "[INFO] Committing changes"
-                            if [[ -n "${commit_msg}" ]]; then
-                                git commit -a -m "${commit_and_stash_name}" -m "${commit_msg}"
-                            else
-                                git commit -a -m "${commit_and_stash_name}"
-                            fi
+                            commit_local_changes "${commit_and_stash_date}" "${commit_msg_text}" "${commit_msg_from_file}"
                         fi
                     fi
 
@@ -366,12 +384,8 @@ while getopts "${optstring}" arg; do
                         else
                             echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
-                        echo "[INFO] Committing changes"
-                        if [[ -n "${commit_msg}" ]]; then
-                            git commit -a -m "[Overwrite]${commit_and_stash_name}" -m "${commit_msg}"
-                        else
-                            git commit -a -m "[Overwrite]${commit_and_stash_name}"
-                        fi
+                        
+                        commit_local_changes "${commit_and_stash_date}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
@@ -381,11 +395,9 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Applying stash in order to push to new remote branch"
                         git stash apply --quiet stash@{0}
                         echo "[INFO] Committing changes"
-                        if [[ -n "${commit_msg}" ]]; then
-                            git commit -a -m "[Conflict]${commit_and_stash_name}" -m "${commit_msg}"
-                        else
-                            git commit -a -m "[Conflict]${commit_and_stash_name}"
-                        fi
+                        
+                        commit_local_changes "${commit_and_stash_date}" "${commit_msg_text}" "${commit_msg_from_file}"
+
                         with_ssh_key "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
                         generateTitle "End. Error: Repository is on a new branch"
