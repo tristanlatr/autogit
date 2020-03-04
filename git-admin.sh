@@ -38,7 +38,7 @@ quick_usage(){
     [-u <Strategy>] [-a] [-m <Commit msg text> ][-f <Commit msg file>] 
     [-t <Commit hash to reset>] [-i <Number of commits to show>]
     -r <Repository path(s)>"
-    echo "${usage}" | fold -s
+    echo "${usage}"
 }
 
 usage(){
