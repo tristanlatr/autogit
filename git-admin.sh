@@ -1,5 +1,5 @@
 #!/bin/bash
-# Titles generator from the menu generator.
+# Titles generator
 symbol="*"
 paddingSymbol=" "
 lineLength=70
@@ -44,7 +44,11 @@ usage(){
     
     What the script can do:
     
-        - Programmatically stash, commit and merge changes from and to remote (to keep local changes and overwrite remote use '-u merge-overwrite').
+        - Programmatically stash, commit and merge (several strategies can be used) changes from and to remote.
+        
+    What the script can't do:
+    
+        - Solve merge conflict that already exists before calling the script
     
     Options:
         -h      Print this help message.
@@ -77,7 +81,7 @@ usage(){
         
         -t <CommitSAH1> Hard reset the local branch to the specified commit. Multiple repo values are not supported by this feature
         
-        -i <Number of commits to show>  Shows tracked files, git status and commit history of last n commits.
+        -i <Number of commits to show>  Shows tracked files, git status and commit history of last N commits.
 
     Examples : 
         $ $0 -r ~/isrm-portal-conf/ -b stable -u merge -i 5
@@ -95,12 +99,12 @@ usage(){
     5 Repository not set
     6 Can't checkout with unstaged files in working tree
     7 Already in the middle of a merge
+    8 Stash could not be saved
     "
-    echo "${usage}" | fold -s
 }
 
 with_ssh_key(){
-    return_val=-1
+    return_val=64
     if [[ ! -z "$2" ]]; then
         echo "[INFO] Using SSH key"
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
@@ -121,6 +125,7 @@ repositories=()
 ssh_key=""
 git_clone_url=""
 commit_msg=""
+nb_stash_to_keep=10
 git_add_untracked=false
 optstring="hk:c:f:ar:b:t:u:i:"
 generateTitle "git-admin on ${host}"
@@ -268,7 +273,10 @@ while getopts "${optstring}" arg; do
                 fi
                 # If there is any kind of changes in the working tree
                 if [[ -n `git status -s` ]]; then
-                    commit_and_stash_name="[git-admin] Changes on ${host} $(date)"
+                
+                    commit_and_stash_date=`date +"%Y-%m-%dT%H-%M-%S"`
+                    commit_and_stash_name="[git-admin] Changes on ${host} ${commit_and_stash_date}"
+
                     if [[ "${git_add_untracked}" = true ]]; then
                         echo "[INFO] Adding untracked files"
                         git add .
@@ -289,11 +297,20 @@ while getopts "${optstring}" arg; do
                             echo "[INFO] Please solve conflicts and clean working tree manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
                             generateTitle "End. Error: Repository is in a conflict state"
                             exit 7
+                        else
+                            if [[ -z `git stash list | grep "${commit_and_stash_date}"` ]] && [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
+                                echo "[ERROR] Looks like your stash could not be saved, to continue anyway, please use '-u merge-or-fail'"
+                                exit 8
+                            fi
                         fi
 
                         if [[ "${strategy}" =~ "merge" ]]; then
-                            echo "[INFO] Applying stash in order to merge"
-                            git stash apply --quiet stash@{0}
+                            if [[ -n `git stash list | grep "${commit_and_stash_date}"` ]]; then
+                                echo "[INFO] Applying stash in order to merge"
+                                git stash apply --quiet stash@{0}
+                            else
+                                echo "[WARNING] Your changes are ot stashed"
+                            fi
 
                             echo "[INFO] Committing changes"
                             if [[ -n "${commit_msg}" ]]; then
@@ -309,22 +326,24 @@ while getopts "${optstring}" arg; do
                 fi
 
                 echo "[INFO] Merging"
-                if ! with_ssh_key "git pull --no-edit" "${ssh_key}"
+                set -e
+                if ! with_ssh_key "git pull" "${ssh_key}"
                 then
+                    set +e
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
                         echo "[WARNING] Merge failed. Reseting to last commit."
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" | fold -s
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
-                        with_ssh_key "git pull --no-edit" "${ssh_key}"
+                        with_ssh_key "git pull" "${ssh_key}"
                     
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         echo "[WARNING] Merge failed. Overwriting remote."
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes with --no-commit flag"
-                        if ! with_ssh_key "git pull --no-edit --no-commit" "${ssh_key}"
+                        if ! with_ssh_key "git pull --no-commit" "${ssh_key}"
                         then
                             echo "[INFO] In the middle of a merge conflict"
                         else
@@ -383,15 +402,22 @@ while getopts "${optstring}" arg; do
                         exit 2
                     fi
                 else
+                    set +e
+                    echo "[INFO] Merge success"
                     branch=`git rev-parse --abbrev-ref HEAD`
-                    echo "[INFO] Clearing stashes of current branch (${branch}), leaving last 5 stashes" | fold -s
-                    for stash in `git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+7 | tail -r`; do
-                        if ! git stash drop --quiet "${stash}"
-                        then
-                            stash_name=`git stash list | grep "On ${branch}" | grep "${stash}"`
-                            echo "[WARNING] A stash could not be deleted: ${stash_name}"
-                        fi
-                    done
+                    tail_n_arg=$(( ${nb_stash_to_keep} + 2))
+                    stashes=`git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
+                    if [[ -n "${stashes}" ]]; then
+                        echo "[INFO] Cleaning old stashes on current branch (${branch}), last ${nb_stash_to_keep} stashes are kept" | fold -s
+                        # Dropping stashes from the oldest, reverse order
+                        for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
+                            if ! git stash drop --quiet "${stash}"
+                            then
+                                stash_name=`git stash list | grep "On ${branch}" | grep "${stash}"`
+                                echo "[WARNING] A stash could not be deleted: ${stash_name}"
+                            fi
+                        done
+                    fi
                 fi
 
                 if [[ "${strategy}" =~ "merge" ]]; then
@@ -415,6 +441,8 @@ while getopts "${optstring}" arg; do
                 git ls-tree --full-tree -r --name-only HEAD
                 generateTitle "Last ${OPTARG} commits activity ${folder}"
                 git --no-pager log -n ${OPTARG} --graph                
+                generateTitle "Git stashes ${folder}"
+                git stash list
                 generateTitle "Git status ${folder}"
                 git status
                 cd "${init_folder}"
