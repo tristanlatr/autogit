@@ -65,17 +65,17 @@ usage(){
         
         -u <Strategy>   Update the current branch from and to upstream, can adopt 7 strategies. This feature supports multiple repo values !
           
-            - 'merge' -> Default merge. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Require a write access to git server.
+            - 'merge' -> Default merge. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Should exit with code 0. Require a write access to git server.
             
-            - 'merge-overwrite' -> Keep local changes. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, reset, pull, re-apply saved changes, accept only local changes in the merge, commit and push to remote. Require a write access to git server.
+            - 'merge-overwrite' -> Keep local changes. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, reset, pull, re-apply saved changes, accept only local changes in the merge, commit and push to remote. Should exit with code 0. Require a write access to git server.
            
-            - 'merge-or-stash' -> Keep remote changes. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash) Require a write access to git server.    
+            - 'merge-or-stash' -> Keep remote changes. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash), exit code 2. Require a write access to git server.    
           
-            - 'merge-or-branch' -> Merge or create a new remote branch. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote (leaving the repository in a new branch). Require a write access to git server.
+            - 'merge-or-branch' -> Merge or create a new remote branch. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote (leaving the repository in a new branch with exit code 2). Require a write access to git server.
           
-            - 'merge-or-fail' -> Merge or leave the reposity in a conflict. Save changes as stash (if-any) (this step can fail, the sctipt will continue without saving the stash), apply them, commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Require a write access to git server.
+            - 'merge-or-fail' -> Merge or leave the reposity in a conflict. Warning if there is a conflict. Save changes as stash (if-any) (this step can fail, the sctipt will continue without saving the stash), apply them, commit, pull and push, if pull fails, will leave the git repositiry in a conflict state with exit code 2. Require a write access to git server.
          
-            - 'stash' -> Always update from remote. Stash the changes and pull. Do not require a write acces to git server.
+            - 'stash' -> Always update from remote. Stash the changes and pull. Should exit with code 0. Do not require a write acces to git server.
 
         -a  Add untracked files to git. To use with '-u <Strategy>'.
        
@@ -403,7 +403,7 @@ while getopts "${optstring}" arg; do
                         echo "[WARNING] Reseting to last commit and re-applying stashed changes."
                         git reset --hard HEAD~1
                         git stash apply --quiet stash@{0}
-                        echo "[INFO] Merge failed, use '-u merge-overwrite' to overwrite remote content or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
+                        echo "[INFO] Merge failed, use '-u merge-overwrite' to overwrite remote content, '-u merge-or-branch' to push changes to new remote branch, '-u merge-or-stash' to keep remote changes (stash local changes). Or you can hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
                         generateTitle "End. Error: nothing changed"
                         exit 2
                     fi
@@ -411,14 +411,14 @@ while getopts "${optstring}" arg; do
                     echo "[INFO] Merge success"
                     branch=`git rev-parse --abbrev-ref HEAD`
                     tail_n_arg=$(( ${nb_stash_to_keep} + 2))
-                    stashes=`git stash list | grep "On ${branch}" | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
+                    stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                     if [[ -n "${stashes}" ]]; then
-                        echo "[INFO] Cleaning old stashes on current branch (${branch}), last ${nb_stash_to_keep} stashes are kept" | fold -s
+                        echo "[INFO] Cleaning stashes older than ${nb_stash_to_keep}" | fold -s
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
                             if ! git stash drop --quiet "${stash}"
                             then
-                                stash_name=`git stash list | grep "On ${branch}" | grep "${stash}"`
+                                stash_name=`git stash list | grep "${stash}"`
                                 echo "[WARNING] A stash could not be deleted: ${stash_name}"
                             fi
                         done
