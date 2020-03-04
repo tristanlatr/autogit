@@ -413,7 +413,8 @@ while getopts "${optstring}" arg; do
                     tail_n_arg=$(( ${nb_stash_to_keep} + 2))
                     stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                     if [[ -n "${stashes}" ]]; then
-                        echo "[INFO] Cleaning stashes older than ${nb_stash_to_keep}" | fold -s
+                        oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
+                        echo "[INFO] Cleaning stashes older than ${oldest_stash}" | fold -s
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
                             if ! git stash drop --quiet "${stash}"
