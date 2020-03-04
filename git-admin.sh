@@ -111,7 +111,7 @@ usage(){
 commit_local_changes(){
     echo "[INFO] Committing changes"
     if [[ -n "${3}" ]] && [[ -z "${2}" ]]; then
-        git commit -a -m "$(echo ${3} | head -1)" -m "${1}" -m "$(echo ${3} | tail -1)"
+        git commit -a -m "${1}" -m "${3}"
     elif [[ -z "${3}" ]] && [[ -n "${2}" ]]; then
         git commit -a -m "${2}" -m "${1}"
     elif [[ -n "${3}" ]] && [[ -n "${2}" ]]; then
