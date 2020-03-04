@@ -42,7 +42,7 @@ quick_usage(){
 }
 
 usage(){
-    usage="
+    long_usage="
     This script is designed to programatically manage merge, pull and push changes from and to a git repository.
         
     The script can't solve merge conflict that already exists before calling the script.
@@ -104,7 +104,7 @@ usage(){
     8 Stash could not be saved
     "
     quick_usage
-    echo "${usage}" | fold -s
+    echo "${long_usage}" | fold -s
 }
 
 # commit_local_changes "timestamp name" "msg text" "msg text from file"
