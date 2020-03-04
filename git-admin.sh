@@ -443,7 +443,7 @@ while getopts "${optstring}" arg; do
             generateTitle "Informations"
             for folder in ${repositories}; do
                 cd $folder
-                generateTitle "Branchse ${folder}"
+                generateTitle "Branches ${folder}"
                 git --no-pager branch -a -vv        
                 generateTitle "Tracked files ${folder}"
                 git ls-tree --full-tree -r --name-only HEAD
