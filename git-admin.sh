@@ -48,6 +48,7 @@ usage(){
     The script can't solve merge conflict that already exists before calling the script.
     
     Options:
+
         -h      Print this help message.
        
         -k <Key>    Path to a trusted ssh key to authenticate against the git server (push). Required if git authentication is not already working with default key.
@@ -83,6 +84,7 @@ usage(){
         -i <Number of commits to show>  Shows tracked files, git status and commit history of last N commits.
 
     Examples : 
+
         $ $0 -r ~/isrm-portal-conf/ -b stable -u merge -i 5
         Checkout the stable branch, pull changes and show infos of the repository (last 5 commits).
         $ '$0 -r ~/isrm-portal-conf/ -t 00a3a3f'
@@ -91,6 +93,7 @@ usage(){
         Init a repo and pull (master by default). Use the specified SSH to authenticate.
 
     Return codes : 
+    
     1 Other errors
     2 Git merge failed
     3 Syntax mistake
