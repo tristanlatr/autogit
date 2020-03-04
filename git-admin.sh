@@ -43,15 +43,9 @@ quick_usage(){
 
 usage(){
     usage="
-    This script is designed to programatically manage merge, pull and push changes on git repository.
-    
-    What the script can do:
-    
-        - Programmatically stash, commit and merge (several strategies can be used) changes from and to remote.
+    This script is designed to programatically manage merge, pull and push changes from and to a git repository.
         
-    What the script can't do:
-    
-        - Solve merge conflict that already exists before calling the script
+    The script can't solve merge conflict that already exists before calling the script.
     
     Options:
         -h      Print this help message.
@@ -345,7 +339,7 @@ while getopts "${optstring}" arg; do
                                 echo "[WARNING] Your changes are ot stashed"
                             fi
 
-                            commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                            commit_local_changes "${commit_and_stash_date}" "${commit_msg_text}" "${commit_msg_from_file}"
                         fi
                     fi
 
@@ -387,7 +381,7 @@ while getopts "${optstring}" arg; do
                             echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
                         
-                        commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        commit_local_changes "${commit_and_stash_date}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
@@ -398,7 +392,7 @@ while getopts "${optstring}" arg; do
                         git stash apply --quiet stash@{0}
                         echo "[INFO] Committing changes"
                         
-                        commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        commit_local_changes "${commit_and_stash_date}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                         with_ssh_key "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
