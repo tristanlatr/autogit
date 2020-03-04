@@ -393,10 +393,7 @@ while getopts "${optstring}" arg; do
                         git checkout -b ${conflit_branch}
                         echo "[INFO] Applying stash in order to push to new remote branch"
                         git stash apply --quiet stash@{0}
-                        echo "[INFO] Committing changes"
-                        
                         commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
-
                         with_ssh_key "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
                         generateTitle "End. Error: Repository is on a new branch"
