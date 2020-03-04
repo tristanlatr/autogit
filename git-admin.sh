@@ -343,7 +343,7 @@ while getopts "${optstring}" arg; do
                                 echo "[WARNING] Your changes are ot stashed"
                             fi
 
-                            commit_local_changes "${commit_and_stash_date}" "${commit_msg_text}" "${commit_msg_from_file}"
+                            commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
                         fi
                     fi
 
@@ -385,7 +385,7 @@ while getopts "${optstring}" arg; do
                             echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
                         
-                        commit_local_changes "${commit_and_stash_date}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
@@ -396,7 +396,7 @@ while getopts "${optstring}" arg; do
                         git stash apply --quiet stash@{0}
                         echo "[INFO] Committing changes"
                         
-                        commit_local_changes "${commit_and_stash_date}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                         with_ssh_key "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
