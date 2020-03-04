@@ -1,4 +1,5 @@
 #!/bin/bash
+# Second version of the Git administration script for automated tasks
 # Titles generator
 symbol="*"
 paddingSymbol=" "
