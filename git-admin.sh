@@ -118,6 +118,7 @@ with_ssh_key(){
     return $return_val
 }
 
+#Script configuration
 host=`hostname`
 init_folder=`pwd`
 repositoryIsSet=false
@@ -128,7 +129,6 @@ commit_msg=""
 nb_stash_to_keep=10
 git_add_untracked=false
 optstring="hk:c:f:ar:b:t:u:i:"
-generateTitle "git-admin on ${host}"
 
 while getopts "${optstring}" arg; do
     case "${arg}" in
@@ -143,6 +143,7 @@ while getopts "${optstring}" arg; do
         u) ;;
         i) ;;
         *)
+            quick_usage
             echo "[ERROR] You made a syntax mistake calling the script. Please see '$0 -h' for more infos." | fold -s
             exit 3
     esac
@@ -157,6 +158,7 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
+generateTitle "Begin"
 while getopts "${optstring}" arg; do
     case "${arg}" in
         k)
