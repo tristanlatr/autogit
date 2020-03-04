@@ -1,9 +1,8 @@
 ### git-admin
 ```
-% ./git-admin.sh -h
+% ./git-admin.sh -h               
 
-    Usage: ./git-admin.sh [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b 
-<Branch>] 
+    Usage: ./git-admin.sh [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] 
     [-u <Strategy>] [-a] [-m <Commit msg text> ][-f <Commit msg file>] 
     [-t <Commit hash to reset>] [-i <Number of commits to show>]
     -r <Repository path(s)>
