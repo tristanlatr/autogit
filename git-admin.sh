@@ -30,8 +30,9 @@ set -euo pipefail
 IFS=$'\n\t,'
 
 quick_usage(){
-    usage="Usage: $0 [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>]
-    [-u <Strategy>] [-a] [-f <Commit msg file>] 
+    usage="
+    Usage: $0 [-h] [-k <SSH Key>] [-c <Git clone URL>] 
+    [-b <Branch>] [-u <Strategy>] [-a] [-f <Commit msg file>] 
     [-t <Commit hash to reset>] [-i <Number of commits to show>]
     -r <Repository path(s)>"
     echo "${usage}" | fold -s
@@ -101,10 +102,12 @@ usage(){
     7 Already in the middle of a merge
     8 Stash could not be saved
     "
+    echo "${usage}" | fold -s
 }
 
 with_ssh_key(){
     return_val=64
+    set +e
     if [[ ! -z "$2" ]]; then
         echo "[INFO] Using SSH key"
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
@@ -115,6 +118,7 @@ with_ssh_key(){
         bash -c $1
         return_val=$?
     fi
+    set -e
     return $return_val
 }
 
@@ -329,10 +333,8 @@ while getopts "${optstring}" arg; do
                 fi
 
                 echo "[INFO] Merging"
-                set -e
                 if ! with_ssh_key "git pull" "${ssh_key}"
                 then
-                    set +e
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
                         echo "[WARNING] Merge failed. Reseting to last commit."
@@ -405,7 +407,6 @@ while getopts "${optstring}" arg; do
                         exit 2
                     fi
                 else
-                    set +e
                     echo "[INFO] Merge success"
                     branch=`git rev-parse --abbrev-ref HEAD`
                     tail_n_arg=$(( ${nb_stash_to_keep} + 2))
