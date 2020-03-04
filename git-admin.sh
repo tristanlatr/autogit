@@ -1,5 +1,5 @@
 #!/bin/bash
-# Titles generator from the menu generator.
+# Titles generator
 symbol="*"
 paddingSymbol=" "
 lineLength=70
@@ -29,48 +29,78 @@ function generateTitle() {
 set -euo pipefail
 IFS=$'\n\t,'
 
+quick_usage(){
+    usage="Usage: $0 [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>]
+    [-u <Strategy>] [-a] [-f <Commit msg file>] 
+    [-t <Commit hash to reset>] [-i <Number of commits to show>]
+    -r <Repository path(s)>"
+    echo "${usage}" | fold -s
+}
+
 usage(){
-    generateTitle "Usage"
-    echo "Usage: $0 [-h] [-k <Key auth for git repo>] [-c <git remote URL>] (-r <Repositorie(s) path(s)>) [-b <Branch>] [-u <Strategy>] [-a] [-f <commit msg file>] [-t <Commit hash>] [-i <Number of commits to show>]" | fold -s
-    echo
-    echo "This script is designed to programatically manage merge, pull and push feature on git repository." | fold -s
-    echo
-    echo -e "\t-h\t\tPrint this help message." | fold -s
-    echo -e "\t-k <Key>\tPath to a trusted ssh key to authenticate against the git server (push). Required if git authentication is not already working with default key." | fold -s
-    echo -e "\t-c <Url>\tURL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several reposities, the same URL will used for all. Multiple repo values are not supported by this feature." | fold -s
-    echo -e "\t-r <Paths>\tPath to managed repository, can be multiple comma separated. Only remote 'origin' can be used. Warning make sure all repositories exists, multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone. Required." | fold -s
-    echo -e "\t-b <Branch>\tSwitch to the specified branch or tag. Fail if changed files in working tree, please merge changes first." | fold -s
-    echo -e "\t-u <Strategy>\tUpdate the current branch from and to upstream, can several strategies. This feature supports multiple repo values !" | fold -s
-    echo
-    echo -e "\t\t- 'merge' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Require a write access to git server." | fold -s
-    echo -e "\t\t- 'merge-overwrite' -> save changes as stash, apply them, commit, pull and push, if pull fails, reset, pull, re-apply saved changes, accept only local changes in the merge, commit and push to remote. Require a write access to git server." | fold -s
-    echo -e "\t\t- 'merge-or-branch' -> save changes as stash, apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote. Require a write access to git server." | fold -s
-    echo -e "\t\t- 'merge-or-fail' -> save changes as stash, apply them, commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Require a write access to git server." | fold -s
-    echo -e "\t\t- 'merge-or-stash' -> save changes as stash, apply them, commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash) Require a write access to git server." | fold -s    
-    echo -e "\t\t- 'stash' -> stash the changes and pull. Do not require a write acces to git server." | fold -s
-    echo
-    echo -e "\t-a\tAdd untracked files to git. To use with '-u <Strategy>'."
-    echo -e "\t-f <Commit msg file>\tSpecify a commit message from a file. To use with '-u <Strategy>'." | fold -s
-    echo -e "\t-t <CommitSAH1>\tHard reset the local branch to the specified commit. Multiple repo values are not supported by this feature" | fold -s
-    echo -e "\t-i <Number of commits to show>\tShows tracked files, git stashes, git status and commit history of last n commits." | fold -s
-    echo
-    echo -e "\tExamples : " | fold -s
-    echo -e "\t\t$0 -r ~/isrm-portal-conf/ -b stable -u merge -i 5" | fold -s
-    echo -e "\t\tCheckout the stable branch, pull changes and show infos of the repository (last 5 commits)." | fold -s
-    echo -e "\t\t'$0 -r ~/isrm-portal-conf/ -t 00a3a3f'" | fold -s
-    echo -e "\t\tHard reset the repository to the specified commit." | fold -s
-    echo -e "\t\t'$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u merge'" | fold -s
-    echo -e "\t\tInit a repo and pull master by default. Use the specified SSH to authenticate." | fold -s
-    echo
-    echo -e "\tReturn codes : "
-    echo -e "\t\t1 Other errors"
-    echo -e "\t\t2 Git merge failed"
-    echo -e "\t\t3 Syntax mistake"
-    echo -e "\t\t4 Git reposirtory does't exist and '-c URL' is not set"
-    echo -e "\t\t5 Repository not set"
-    echo -e "\t\t6 Can't checkout with unstaged files in working tree"
-    echo -e "\t\t7 Already in the middle of a merge"
-    echo -e "\t\t8 Stash could not be saved"
+    quick_usage
+    usage="
+    This script is designed to programatically manage merge, pull and push changes on git repository.
+    
+    What the script can do:
+    
+        - Programmatically stash, commit and merge (several strategies can be used) changes from and to remote.
+        
+    What the script can't do:
+    
+        - Solve merge conflict that already exists before calling the script
+    
+    Options:
+        -h      Print this help message.
+       
+        -k <Key>    Path to a trusted ssh key to authenticate against the git server (push). Required if git authentication is not already working with default key.
+        
+        -c <Url>    URL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several reposities, the same URL will used for all. Multiple repo values are not supported by this feature.
+        
+        -r <Paths>  Path to managed repository, can be multiple comma separated. Only remote 'origin' can be used. Warning make sure all repositories exists, multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone. Required.
+        
+        -b <Branch> Switch to the specified branch or tag. Fail if changed files in working tree, please merge changes first.
+        
+        -u <Strategy>   Update the current branch from and to upstream, can adopt 7 strategies. This feature supports multiple repo values !
+          
+            - 'merge' -> Default merge. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Require a write access to git server.
+            
+            - 'merge-overwrite' -> Keep local changes. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, reset, pull, re-apply saved changes, accept only local changes in the merge, commit and push to remote. Require a write access to git server.
+           
+            - 'merge-or-stash' -> Keep remote changes. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash) Require a write access to git server.    
+          
+            - 'merge-or-branch' -> Merge or create a new remote branch. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote (leaving the repository in a new branch). Require a write access to git server.
+          
+            - 'merge-or-fail' -> Merge or leave the reposity in a conflict. Save changes as stash (if-any) (this step can fail, the sctipt will continue without saving the stash), apply them, commit, pull and push, if pull fails, will leave the git repositiry in a conflict state. Require a write access to git server.
+         
+            - 'stash' -> Always update from remote. Stash the changes and pull. Do not require a write acces to git server.
+
+        -a  Add untracked files to git. To use with '-u <Strategy>'.
+       
+        -f <Commit msg file>    Specify a commit message from a file. To use with '-u <Strategy>'.
+        
+        -t <CommitSAH1> Hard reset the local branch to the specified commit. Multiple repo values are not supported by this feature
+        
+        -i <Number of commits to show>  Shows tracked files, git status and commit history of last N commits.
+
+    Examples : 
+        $ $0 -r ~/isrm-portal-conf/ -b stable -u merge -i 5
+        Checkout the stable branch, pull changes and show infos of the repository (last 5 commits).
+        $ '$0 -r ~/isrm-portal-conf/ -t 00a3a3f'
+        Hard reset the repository to the specified commit.
+        $ '$0 -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u merge'
+        Init a repo and pull (master by default). Use the specified SSH to authenticate.
+
+    Return codes : 
+    1 Other errors
+    2 Git merge failed
+    3 Syntax mistake
+    4 Git reposirtory does't exist and '-c URL' is not set
+    5 Repository not set
+    6 Can't checkout with unstaged files in working tree
+    7 Already in the middle of a merge
+    8 Stash could not be saved
+    "
 }
 
 with_ssh_key(){
@@ -243,12 +273,14 @@ while getopts "${optstring}" arg; do
                 fi
                 # If there is any kind of changes in the working tree
                 if [[ -n `git status -s` ]]; then
+                
                     commit_and_stash_date=`date +"%Y-%m-%dT%H-%M-%S"`
                     commit_and_stash_name="[git-admin] Changes on ${host} ${commit_and_stash_date}"
 
                     if [[ "${git_add_untracked}" = true ]]; then
                         echo "[INFO] Adding untracked files"
                         git add .
+                        git_stash_args="-u -k"
                     fi
 
                     echo "[INFO] Locally changed files:"
@@ -258,6 +290,7 @@ while getopts "${optstring}" arg; do
                     if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
                     then
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
+
                         if ! git stash save "${commit_and_stash_name}"
                         then
                             echo "[ERROR] Unable to save stash"
@@ -341,6 +374,12 @@ while getopts "${optstring}" arg; do
                         git checkout -b ${conflit_branch}
                         echo "[INFO] Applying stash in order to push to new remote branch"
                         git stash apply --quiet stash@{0}
+                        echo "[INFO] Committing changes"
+                        if [[ -n "${commit_msg}" ]]; then
+                            git commit -a -m "[Conflict]${commit_and_stash_name}" -m "${commit_msg}"
+                        else
+                            git commit -a -m "[Conflict]${commit_and_stash_name}"
+                        fi
                         with_ssh_key "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
                         echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
                         generateTitle "End. Error: Repository is on a new branch"
