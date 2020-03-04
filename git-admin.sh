@@ -414,7 +414,7 @@ while getopts "${optstring}" arg; do
                     stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                     if [[ -n "${stashes}" ]]; then
                         oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
-                        echo "[INFO] Cleaning stashes older than ${oldest_stash}" | fold -s
+                        echo "[INFO] Cleaning stashes older than ${oldest_stash}"
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
                             if ! git stash drop --quiet "${stash}"
@@ -443,12 +443,12 @@ while getopts "${optstring}" arg; do
             generateTitle "Informations"
             for folder in ${repositories}; do
                 cd $folder
+                generateTitle "Branchse ${folder}"
+                git --no-pager branch -a -vv        
                 generateTitle "Tracked files ${folder}"
                 git ls-tree --full-tree -r --name-only HEAD
                 generateTitle "Last ${OPTARG} commits activity ${folder}"
                 git --no-pager log -n ${OPTARG} --graph                
-                generateTitle "Git stashes ${folder}"
-                git stash list
                 generateTitle "Git status ${folder}"
                 git status
                 cd "${init_folder}"
