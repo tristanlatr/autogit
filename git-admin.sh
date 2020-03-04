@@ -99,7 +99,7 @@ usage(){
     3 Syntax mistake
     4 Git reposirtory does't exist and '-c URL' is not set
     5 Repository not set
-    6 Can't checkout with unstaged files in working tree
+    6 Can't checkout with changed files in working tree
     7 Already in the middle of a merge
     8 Stash could not be saved
     "
