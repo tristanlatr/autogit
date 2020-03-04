@@ -185,12 +185,12 @@ while getopts "${optstring}" arg; do
             repositories=${OPTARG}
             for folder in ${repositories}; do
                 
-                generateTitle "Repository $folder"
-
                 if [[ -d "$folder" ]]; then
                     cd $folder
                     with_ssh_key "git remote update" "${ssh_key}"
-                    with_ssh_key "git --no-pager branch -a -vv" "${ssh_key}"
+                    branch=`git rev-parse --abbrev-ref HEAD`
+                    echo "[INFO] Check repository $folder on branch ${branch}"
+
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
                         echo "[INFO] Repository do no exist, initating it."
@@ -199,7 +199,8 @@ while getopts "${optstring}" arg; do
                         git init
                         git remote add -t master origin ${git_clone_url} 
                         with_ssh_key "git remote update" "${ssh_key}"
-                        with_ssh_key "git --no-pager branch -a -vv" "${ssh_key}"
+                        branch=`git rev-parse --abbrev-ref HEAD`
+                        echo "[INFO] Check repository $folder on branch ${branch}"
                     else
                         echo "[ERROR] Git reposirtory do not exist and '-c <URL>' is not set. Please set git URL to be able to initiate the repo" |  fold -s
                         exit 4
@@ -275,14 +276,14 @@ while getopts "${optstring}" arg; do
                 fi
                 # If there is any kind of changes in the working tree
                 if [[ -n `git status -s` ]]; then
-                
+                    git_stash_args=""
                     commit_and_stash_date=`date +"%Y-%m-%dT%H-%M-%S"`
                     commit_and_stash_name="[git-admin] Changes on ${host} ${commit_and_stash_date}"
 
                     if [[ "${git_add_untracked}" = true ]]; then
                         echo "[INFO] Adding untracked files"
                         git add .
-                        git_stash_args="-u -k"
+                        git_stash_args="--include-untracked"
                     fi
 
                     echo "[INFO] Locally changed files:"
@@ -293,7 +294,7 @@ while getopts "${optstring}" arg; do
                     then
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
 
-                        if ! git stash save "${commit_and_stash_name}"
+                        if ! git stash ${git_stash_args} save "${commit_and_stash_name}"
                         then
                             echo "[ERROR] Unable to save stash"
                             echo "[INFO] Please solve conflicts and clean working tree manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
