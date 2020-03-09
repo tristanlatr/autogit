@@ -478,7 +478,7 @@ while getopts "${optstring}" arg; do
                 cd $folder
                 echo "[INFO] Branches ${folder}"
                 git --no-pager branch -a -vv        
-                cho "[INFO] Tracked files ${folder}"
+                echo "[INFO] Tracked files ${folder}"
                 git ls-tree --full-tree -r --name-only HEAD
                 echo "[INFO] Last ${OPTARG} commits activity ${folder}"
                 git --no-pager log -n ${OPTARG} --graph                
