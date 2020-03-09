@@ -213,7 +213,6 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
-stdout "$quiet" echo "[BEGIN]"
 while getopts "${optstring}" arg; do
     case "${arg}" in
         k)
@@ -340,7 +339,7 @@ while getopts "${optstring}" arg; do
                     commit_and_stash_name="[git-admin] Changes on ${host} ${commit_and_stash_date}"
 
                     if [[ "${git_add_untracked}" = true ]]; then
-                        echo "[INFO] Adding untracked files"
+                        stdout "$quiet" echo "[INFO] Adding untracked files"
                         stdout "$quiet" git add .
                         git_stash_args="--include-untracked"
                     fi
@@ -386,89 +385,85 @@ while getopts "${optstring}" arg; do
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
-                        echo "[WARNING] Merge failed. Reseting to last commit."
-                        echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" | fold -s
-                        git reset --hard HEAD~1
-                        echo "[INFO] Pulling changes"
-                        with_ssh_key "git pull" "${ssh_key}"
+                        stdout "$quiet" echo "[WARNING] Merge failed. Reseting to last commit."
+                        stdout "$quiet" echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" | fold -s
+                        stdout "$quiet" git reset --hard HEAD~1
+                        stdout "$quiet" echo "[INFO] Pulling changes"
+                        stdout "$quiet" with_ssh_key "git pull" "${ssh_key}"
                     
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
-                        echo "[WARNING] Merge failed. Overwriting remote."
-                        git reset --hard HEAD~1
-                        echo "[INFO] Pulling changes with --no-commit flag"
-                        if ! with_ssh_key "git pull --no-commit" "${ssh_key}"
+                        stdout "$quiet" echo "[WARNING] Merge failed. Overwriting remote."
+                        stdout "$quiet" git reset --hard HEAD~1
+                        stdout "$quiet" echo "[INFO] Pulling changes with --no-commit flag"
+                        if ! stdout "$quiet" with_ssh_key "git pull --no-commit" "${ssh_key}"
                         then
-                            echo "[INFO] In the middle of a merge conflict"
+                            stdout "$quiet" echo "[INFO] In the middle of a merge conflict"
                         else
-                            echo "[WARNING] Git pull successful, no need to overwrite."
+                            stdout "$quiet" echo "[WARNING] Git pull successful, no need to overwrite."
                         fi
-                        echo "[INFO] Applying stash in order to merge"
+                        stdout "$quiet" echo "[INFO] Applying stash in order to merge"
                         if ! git stash apply --quiet stash@{0}
                         then
-                            echo "[INFO] Overwriting files with stashed changes"
+                            stdout "$quiet" echo "[INFO] Overwriting files with stashed changes"
                             for file in `git ls-tree --full-tree -r --name-only HEAD`; do
-                                git checkout --theirs -- ${file}
-                                git add ${file}
+                                stdout "$quiet" git checkout --theirs -- ${file}
+                                stdout "$quiet" git add ${file}
                             done
                         else
-                            echo "[WARNING] Git stash apply successful, no need to overwrite"
+                            stdout "$quiet" echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
                         
-                        commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        stdout "$quiet" commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
-                        echo "[WARNING] Merge failed. Creating a new remote branch ${conflit_branch}"
-                        git reset --hard HEAD~1
-                        git checkout -b ${conflit_branch}
-                        echo "[INFO] Applying stash in order to push to new remote branch"
-                        git stash apply --quiet stash@{0}
-                        commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
-                        with_ssh_key "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
-                        echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
-                        generateTitle "End. Error: Repository is on a new branch"
+                        stdout "$quiet" echo "[WARNING] Merge failed. Creating a new remote branch ${conflit_branch}"
+                        stdout "$quiet" git reset --hard HEAD~1
+                        stdout "$quiet" git checkout -b ${conflit_branch}
+                        stdout "$quiet" echo "[INFO] Applying stash in order to push to new remote branch"
+                        stdout "$quiet" git stash apply --quiet stash@{0}
+                        stdout "$quiet" commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        stdout "$quiet" with_ssh_key "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
+                        stdout "$quiet" echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
+                        echo "[ERROR] Repository is on a new branch"
                         exit 2
 
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
-                        echo "[ERROR] Merge failed."
-                        echo "[WARNING] Repository is in a conflict state!"
-                        echo "[INFO] Please solve conflicts and clean working tree manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
-                        generateTitle "End. Error: Repository is in a conflict state"
+                        echo "[ERROR] Merge failed. Repository is in a conflict state!"
+                        echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" | fold -s
                         exit 2
                     
                     else
-                        echo "[ERROR] Merge failed."
-                        echo "[WARNING] Reseting to last commit and re-applying stashed changes."
-                        git reset --hard HEAD~1
+                        stdout "$quiet" echo "[WARNING] Merge failed. Reseting to last commit and re-applying stashed changes."
+                        stdout "$quiet" git reset --hard HEAD~1
                         git stash apply --quiet stash@{0}
-                        echo "[INFO] Merge failed, use '-u merge-overwrite' to overwrite remote content, '-u merge-or-branch' to push changes to new remote branch, '-u merge-or-stash' to keep remote changes (stash local changes). Or you can hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
-                        generateTitle "End. Error: nothing changed"
+                        echo "[ERROR] Merge failed, nothing changed. Use '-u merge-overwrite' to overwrite remote content, '-u merge-or-branch' to push changes to new remote branch, '-u merge-or-stash' to keep remote changes (stash local changes). Or you can hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
                         exit 2
                     fi
                 else
-                    echo "[INFO] Merge success"
+                    stdout "$quiet" echo "[INFO] Merge success"
                     branch=`git rev-parse --abbrev-ref HEAD`
                     tail_n_arg=$(( ${nb_stash_to_keep} + 2))
                     stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                     if [[ -n "${stashes}" ]]; then
                         oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
-                        echo "[INFO] Cleaning stashes older than ${oldest_stash}"
+                        stdout "$quiet" echo "[INFO] Cleaning stashes"
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
                             if ! git stash drop --quiet "${stash}"
                             then
                                 stash_name=`git stash list | grep "${stash}"`
-                                echo "[WARNING] A stash could not be deleted: ${stash_name}"
+                                stdout "$quiet" echo "[WARNING] A stash could not be deleted: ${stash_name}"
                             fi
                         done
                     fi
                 fi
 
                 if [[ "${strategy}" =~ "merge" ]]; then
-                    echo "[INFO] Pushing changes"
+                    stdout "$quiet" echo "[INFO] Pushing changes"
                     branch=`git rev-parse --abbrev-ref HEAD`
-                    with_ssh_key "git push --quiet -u origin ${branch}" "${ssh_key}"
+                    stdout "$quiet" with_ssh_key "git push --quiet -u origin ${branch}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
             done
@@ -478,17 +473,16 @@ done
 OPTIND=1
 while getopts "${optstring}" arg; do
     case "${arg}" in
-        i) #Show git log -> To have the commits sha1
-            generateTitle "Informations"
+        i)
             for folder in ${repositories}; do
                 cd $folder
-                generateTitle "Branches ${folder}"
+                echo "[INFO] Branches ${folder}"
                 git --no-pager branch -a -vv        
-                generateTitle "Tracked files ${folder}"
+                cho "[INFO] Tracked files ${folder}"
                 git ls-tree --full-tree -r --name-only HEAD
-                generateTitle "Last ${OPTARG} commits activity ${folder}"
+                echo "[INFO] Last ${OPTARG} commits activity ${folder}"
                 git --no-pager log -n ${OPTARG} --graph                
-                generateTitle "Git status ${folder}"
+                echo "[INFO] Git status ${folder}"
                 git status
                 cd "${init_folder}"
             done
