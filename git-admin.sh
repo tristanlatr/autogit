@@ -193,6 +193,7 @@ stdout "$quiet" echo "| .-. |,--.'-.  .-''-----'' ,-.  |' .-. ||        |,--.|  
 stdout "$quiet" echo "' '-' '|  |  |  |         \ '-'  |\ \`-' ||  |  |  ||  ||  ||  | ";
 stdout "$quiet" echo ".\`-  / \`--'  \`--'          \`--\`--' \`---' \`--\`--\`--'\`--'\`--''--' ";
 stdout "$quiet" echo "\`---'                                                           ";
+stdout "$quiet" echo "---------------------------------------------------------------"
 
 while getopts "${optstring}" arg; do
     case "${arg}" in
@@ -440,26 +441,26 @@ while getopts "${optstring}" arg; do
                     fi
                 else
                     stdout "$quiet" echo "[INFO] Merge success"
-                    branch=`git rev-parse --abbrev-ref HEAD`
-                    tail_n_arg=$(( ${nb_stash_to_keep} + 2))
-                    stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
-                    if [[ -n "${stashes}" ]]; then
-                        oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
-                        stdout "$quiet" echo "[INFO] Cleaning stashes"
-                        # Dropping stashes from the oldest, reverse order
-                        for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
-                            if ! stdout "$quiet"  git stash drop "${stash}"
-                            then
-                                stash_name=`git stash list | grep "${stash}"`
-                                stdout "$quiet" echo "[WARNING] A stash could not be deleted: ${stash_name}"
-                            fi
-                        done
-                    fi
+                fi
+                
+                tail_n_arg=$(( ${nb_stash_to_keep} + 2))
+                stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
+                if [[ -n "${stashes}" ]]; then
+                    oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
+                    stdout "$quiet" echo "[INFO] Cleaning stashes"
+                    # Dropping stashes from the oldest, reverse order
+                    for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
+                        if ! stdout "$quiet"  git stash drop "${stash}"
+                        then
+                            stash_name=`git stash list | grep "${stash}"`
+                            stdout "$quiet" echo "[WARNING] A stash could not be deleted: ${stash_name}"
+                        fi
+                    done
                 fi
 
+                branch=`git rev-parse --abbrev-ref HEAD`
                 if [[ "${strategy}" =~ "merge" ]]; then
                     stdout "$quiet" echo "[INFO] Pushing changes"
-                    branch=`git rev-parse --abbrev-ref HEAD`
                     stdout "$quiet" with_ssh_key "git push -u origin ${branch}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
