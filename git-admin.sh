@@ -164,6 +164,15 @@ exec_or_fail(){
     fi
 }
 
+is_changes_in_tracked_files(){
+    if ! git diff-files --quiet -- && git diff-index --quiet --cached --exit-code HEAD
+    then
+        return 0
+    else
+        return 1
+    fi
+}
+
 while getopts "${optstring}" arg; do
     case "${arg}" in
         h) ;;
@@ -299,8 +308,7 @@ while getopts "${optstring}" arg; do
                 cd $folder
                 branch=`git rev-parse --abbrev-ref HEAD`
                 if [[ ! "${OPTARG}" == "${branch}" ]]; then
-                    if git diff-files --quiet -- && git diff-index --quiet --cached --exit-code HEAD
-                    then
+                    if ! is_changes_in_tracked_files; then
                         if ! logger $is_quiet git checkout -b ${OPTARG}
                         then
                             exec_or_fail logger $is_quiet git checkout ${OPTARG}
@@ -312,7 +320,6 @@ while getopts "${optstring}" arg; do
                 else
                     logger $is_quiet echo "[INFO] Already on branch ${OPTARG}"
                 fi
-
                 cd "${init_folder}"
             done
             ;;
@@ -348,8 +355,7 @@ while getopts "${optstring}" arg; do
                     logger $is_quiet git status -s
 
                     # If staged or unstaged changes in the tracked files in the working tree
-                    if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
-                    then
+                    if is_changes_in_tracked_files; then
                         logger $is_quiet echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
 
                         if ! logger $is_quiet git stash save ${git_stash_args} "${commit_and_stash_name}"
