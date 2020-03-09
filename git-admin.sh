@@ -142,7 +142,6 @@ stdout() {
         stderr='/tmp/command-stderr.txt'
         if ! $@ </dev/null >$stdout 2>$stderr
         then
-            cat $stdout
             cat $stderr >&2
             rm -f $stdout $stderr
             return 1
