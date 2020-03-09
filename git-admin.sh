@@ -352,7 +352,7 @@ while getopts "${optstring}" arg; do
                     then
                         stdout "$quiet" echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
 
-                        if ! git stash save ${git_stash_args} "${commit_and_stash_name}"
+                        if ! stdout "$quiet" git stash save ${git_stash_args} "${commit_and_stash_name}"
                         then
                             echo "[ERROR] Unable to save stash, repository can be in a conflict state"
                             echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" | fold -s
@@ -380,7 +380,7 @@ while getopts "${optstring}" arg; do
                     stdout "$quiet" echo "[INFO] No local changes"
                 fi
 
-                echo "[INFO] Merging"
+                stdout "$quiet" echo "[INFO] Merging"
                 if ! stdout "$quiet" with_ssh_key "git pull" "${ssh_key}"
                 then
                     # No error
