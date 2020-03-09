@@ -1,6 +1,6 @@
 #!/bin/bash
 # Git administration script
-# Edited 2019-03-12
+# Edited 2020-03-10
 
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
@@ -374,14 +374,14 @@ while getopts "${optstring}" arg; do
                     
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
-                        stdout "$quiet" echo "[WARNING] Merge failed. Overwriting remote."
+                        stdout "$quiet" echo "[WARNING] Merge failed. Reseting to last"
                         stdout "$quiet" git reset --hard HEAD~1
                         stdout "$quiet" echo "[INFO] Pulling changes with --no-commit flag"
                         if ! stdout "$quiet" with_ssh_key "git pull --no-commit" "${ssh_key}"
                         then
                             stdout "$quiet" echo "[INFO] In the middle of a merge conflict"
                         else
-                            stdout "$quiet" echo "[WARNING] Git pull successful, no need to overwrite."
+                            stdout "$quiet" echo "[INFO] Git pull successful"
                         fi
                         stdout "$quiet" echo "[INFO] Applying stash in order to merge"
                         if ! git stash apply --quiet stash@{0}
