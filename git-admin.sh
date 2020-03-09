@@ -140,20 +140,6 @@ with_ssh_key(){
     return $return_val
 }
 
-#Script configuration
-host=`hostname`
-init_folder=`pwd`
-repositoryIsSet=false
-repositories=()
-ssh_key=""
-git_clone_url=""
-commit_msg_from_file=""
-commit_msg_text=""
-nb_stash_to_keep=10
-git_add_untracked=false
-optstring="hqk:c:m:f:ar:b:t:u:i:"
-quiet=false
-
 # stdout "<Quiet true/false>" mycommand args
 stdout() {
     quiet=$1
@@ -176,6 +162,20 @@ stdout() {
         fi
     fi
 }
+
+#Script configuration
+host=`hostname`
+init_folder=`pwd`
+repositoryIsSet=false
+repositories=()
+ssh_key=""
+git_clone_url=""
+commit_msg_from_file=""
+commit_msg_text=""
+nb_stash_to_keep=10
+git_add_untracked=false
+optstring="hqk:c:m:f:ar:b:t:u:i:"
+quiet=false
 
 while getopts "${optstring}" arg; do
     case "${arg}" in
