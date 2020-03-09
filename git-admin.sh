@@ -411,7 +411,6 @@ while getopts "${optstring}" arg; do
                         else
                             stdout "$quiet" echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
-                        
                         stdout "$quiet" commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
@@ -442,7 +441,11 @@ while getopts "${optstring}" arg; do
                 else
                     stdout "$quiet" echo "[INFO] Merge success"
                 fi
-                
+                branch=`git rev-parse --abbrev-ref HEAD`
+                if [[ "${strategy}" =~ "merge" ]]; then
+                    stdout "$quiet" echo "[INFO] Pushing changes"
+                    stdout "$quiet" with_ssh_key "git push -u origin ${branch}" "${ssh_key}"
+                fi
                 tail_n_arg=$(( ${nb_stash_to_keep} + 2))
                 stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                 if [[ -n "${stashes}" ]]; then
@@ -456,12 +459,6 @@ while getopts "${optstring}" arg; do
                             stdout "$quiet" echo "[WARNING] A stash could not be deleted: ${stash_name}"
                         fi
                     done
-                fi
-
-                branch=`git rev-parse --abbrev-ref HEAD`
-                if [[ "${strategy}" =~ "merge" ]]; then
-                    stdout "$quiet" echo "[INFO] Pushing changes"
-                    stdout "$quiet" with_ssh_key "git push -u origin ${branch}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
             done
