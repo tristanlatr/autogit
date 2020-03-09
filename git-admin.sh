@@ -179,17 +179,26 @@ done
 OPTIND=1
 while getopts "${optstring}" arg; do
     case "${arg}" in
-        h) #Print help
-            usage
-            exit
+        q)
+            quiet=true
             ;;
     esac
 done
 OPTIND=1
+
+stdout "$quiet" echo "                                                                ";
+stdout "$quiet" echo "       ,--.  ,--.                    ,--.          ,--.         ";
+stdout "$quiet" echo " ,---. \`--',-'  '-.,-----. ,--,--. ,-|  |,--,--,--.\`--',--,--,  ";
+stdout "$quiet" echo "| .-. |,--.'-.  .-''-----'' ,-.  |' .-. ||        |,--.|      \ ";
+stdout "$quiet" echo "' '-' '|  |  |  |         \ '-'  |\ \`-' ||  |  |  ||  ||  ||  | ";
+stdout "$quiet" echo ".\`-  / \`--'  \`--'          \`--\`--' \`---' \`--\`--\`--'\`--'\`--''--' ";
+stdout "$quiet" echo "\`---'                                                           ";
+
 while getopts "${optstring}" arg; do
     case "${arg}" in
-        q)
-            quiet=true
+        h) #Print help
+            usage
+            exit
             ;;
     esac
 done
