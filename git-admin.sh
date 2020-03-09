@@ -1,6 +1,6 @@
 #!/bin/bash
 # Git administration script
-#  Edited wdwxwcwxw
+# Version 1
 
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
@@ -395,8 +395,9 @@ while getopts "${optstring}" arg; do
                         stdout "$quiet" echo "[INFO] Applying stash in order to merge"
                         if ! stdout "$quiet" git stash apply stash@{0}
                         then
-                            diff=`git diff`
-                            stdout "$quiet" echo -e "[INFO] Diff:\n$diff"
+                            git diff > /tmp/git_diff
+                            stdout "$quiet" echo "[INFO] Diff:"
+                            stdout "$quiet" cat /tmp/git_diff
                             stdout "$quiet" echo "[INFO] Overwriting files with stashed changes"
 
                             for file in `git ls-tree --full-tree -r --name-only HEAD`; do
