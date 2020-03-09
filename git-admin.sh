@@ -348,7 +348,7 @@ while getopts "${optstring}" arg; do
                         if [[ "${strategy}" =~ "merge" ]]; then
                             if [[ -n `git stash list | grep "${commit_and_stash_date}"` ]]; then
                                 stdout "$quiet" echo "[INFO] Applying stash in order to merge"
-                                git stash apply --quiet stash@{0}
+                                stdout "$quiet" git stash apply stash@{0}
                             else
                                 stdout "$quiet" echo "[WARNING] Your changes are not saved as stash"
                             fi
@@ -374,7 +374,7 @@ while getopts "${optstring}" arg; do
                     
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
-                        stdout "$quiet" echo "[WARNING] Merge failed. Reseting to last"
+                        stdout "$quiet" echo "[WARNING] Merge failed. Reseting to last commit"
                         stdout "$quiet" git reset --hard HEAD~1
                         stdout "$quiet" echo "[INFO] Pulling changes with --no-commit flag"
                         if ! stdout "$quiet" with_ssh_key "git pull --no-commit" "${ssh_key}"
@@ -384,9 +384,13 @@ while getopts "${optstring}" arg; do
                             stdout "$quiet" echo "[INFO] Git pull successful"
                         fi
                         stdout "$quiet" echo "[INFO] Applying stash in order to merge"
-                        if ! git stash apply --quiet stash@{0}
+                        if ! stdout "$quiet" git stash apply stash@{0}
                         then
-                            stdout "$quiet" echo "[INFO] Overwriting files with stashed changes"
+                            diff=`git diff`
+                            sdtout "$quiet" echo -e "[INFO] Diff:\n$diff"
+                            stdout "$quiet" echo "[INFO] Overwriting files with stashed changes, sleeping 15s. Take a moment to look at the changes and hit Crtl+C if you see a bug !"
+                            sleep 15
+
                             for file in `git ls-tree --full-tree -r --name-only HEAD`; do
                                 stdout "$quiet" git checkout --theirs -- ${file}
                                 stdout "$quiet" git add ${file}
@@ -403,9 +407,9 @@ while getopts "${optstring}" arg; do
                         stdout "$quiet" git reset --hard HEAD~1
                         stdout "$quiet" git checkout -b ${conflit_branch}
                         stdout "$quiet" echo "[INFO] Applying stash in order to push to new remote branch"
-                        stdout "$quiet" git stash apply --quiet stash@{0}
+                        stdout "$quiet" git stash apply stash@{0}
                         stdout "$quiet" commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
-                        stdout "$quiet" with_ssh_key "git push --quiet -u origin ${conflit_branch}" "${ssh_key}"
+                        stdout "$quiet" with_ssh_key "git push -u origin ${conflit_branch}" "${ssh_key}"
                         stdout "$quiet" echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
                         echo "[ERROR] Repository is on a new branch"
                         exit 2
@@ -418,7 +422,7 @@ while getopts "${optstring}" arg; do
                     else
                         stdout "$quiet" echo "[WARNING] Merge failed. Reseting to last commit and re-applying stashed changes."
                         stdout "$quiet" git reset --hard HEAD~1
-                        git stash apply --quiet stash@{0}
+                        stdout "$quiet" git stash apply stash@{0}
                         echo "[ERROR] Merge failed, nothing changed. Use '-u merge-overwrite' to overwrite remote content, '-u merge-or-branch' to push changes to new remote branch, '-u merge-or-stash' to keep remote changes (stash local changes). Or you can hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
                         exit 2
                     fi
@@ -432,7 +436,7 @@ while getopts "${optstring}" arg; do
                         stdout "$quiet" echo "[INFO] Cleaning stashes"
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
-                            if ! git stash drop --quiet "${stash}"
+                            if ! stdout "$quiet"  git stash drop "${stash}"
                             then
                                 stash_name=`git stash list | grep "${stash}"`
                                 stdout "$quiet" echo "[WARNING] A stash could not be deleted: ${stash_name}"
@@ -444,7 +448,7 @@ while getopts "${optstring}" arg; do
                 if [[ "${strategy}" =~ "merge" ]]; then
                     stdout "$quiet" echo "[INFO] Pushing changes"
                     branch=`git rev-parse --abbrev-ref HEAD`
-                    stdout "$quiet" with_ssh_key "git push --quiet -u origin ${branch}" "${ssh_key}"
+                    stdout "$quiet" with_ssh_key "git push -u origin ${branch}" "${ssh_key}"
                 fi
                 cd "${init_folder}"
             done
