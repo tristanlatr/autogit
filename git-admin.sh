@@ -162,15 +162,17 @@ stdout() {
         stdout="/tmp/command-stdout.txt"
         stderr='/tmp/command-stderr.txt'
         if ! $@ </dev/null >$stdout 2>$stderr; then
+            return_val=$?
             cat $stderr >&2
             rm -f $stdout $stderr
-            return 1
+            return return_val
         fi
         # echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
         rm -f $stdout $stderr
     else
         if ! $@; then
-            return 1
+            return_val=$?
+            return return_val
         fi
     fi
 }
