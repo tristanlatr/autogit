@@ -6,6 +6,22 @@
 set -euo pipefail
 IFS=$'\n\t,'
 
+# Script constants
+host=`hostname`
+init_folder=`pwd`
+optstring="hqk:c:m:f:ar:b:t:u:i:"
+nb_stash_to_keep=10
+
+# Script config
+repositoryIsSet=false
+repositories=()
+ssh_key=""
+git_clone_url=""
+commit_msg_from_file=""
+commit_msg_text=""
+git_add_untracked=false
+quiet=false
+
 quick_usage(){
     usage="
     Usage: $0 [-h] [-q] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] 
@@ -126,35 +142,20 @@ stdout() {
         stderr='/tmp/command-stderr.txt'
         if ! $@ </dev/null >$stdout 2>$stderr
         then
+            cat $stdout
             cat $stderr >&2
             rm -f $stdout $stderr
-            exit 1
+            return 1
         fi
         # echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
         rm -f $stdout $stderr
     else
         if ! $@
         then
-            exit 1
+            return 1
         fi
     fi
 }
-
-#Script configuration
-host=`hostname`
-init_folder=`pwd`
-repositoryIsSet=false
-repositories=()
-ssh_key=""
-git_clone_url=""
-commit_msg_from_file=""
-commit_msg_text=""
-nb_stash_to_keep=10
-git_add_untracked=false
-optstring="hqk:c:m:f:ar:b:t:u:i:"
-quiet=false
-
-
 
 while getopts "${optstring}" arg; do
     case "${arg}" in
@@ -276,7 +277,7 @@ while getopts "${optstring}" arg; do
                 cd "${init_folder}"
                 break
             done
-            stdout "$quiet" echo "End (reset)"
+            stdout "$quiet" echo "[INFO] Reset done"
             exit
             ;;
     esac
@@ -389,10 +390,10 @@ while getopts "${optstring}" arg; do
                         stdout "$quiet" echo "[INFO] Pulling changes with --no-commit flag"
                         if ! stdout "$quiet" with_ssh_key "git pull --no-commit" "${ssh_key}"
                         then
-                            stdout "$quiet" echo "[WARNING] The last commit is also in conflict with remote. Giving up. You can still use '-u merge-or-branch'"
-                            stdout "$quiet" echo "[INFO] Applying last stash and quitting"
+                            stdout "$quiet" echo "[WARNING] Last commit is also in conflict with remote. Giving up."
+                            stdout "$quiet" echo "[INFO] Trying to apply last stash and quitting"
                             stdout "$quiet" git stash apply stash@{0}
-                            echo "[ERROR] Merge failed. Repository is in a conflict state!"
+                            echo "[ERROR] Merge overwrite failed. Repository is in a conflict state!"
                             echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" | fold -s
                             exit 2
                         fi
@@ -424,7 +425,7 @@ while getopts "${optstring}" arg; do
                         stdout "$quiet" with_ssh_key "git push -u origin ${conflit_branch}" "${ssh_key}"
                         stdout "$quiet" echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
                         echo "[WARNING] Repository is on a new branch"
-                        exit
+                        exit 0
 
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
                         echo "[ERROR] Merge failed. Repository is in a conflict state!"
@@ -435,7 +436,11 @@ while getopts "${optstring}" arg; do
                         stdout "$quiet" echo "[WARNING] Merge failed. Reseting to last commit and re-applying stashed changes."
                         stdout "$quiet" git reset --hard HEAD~1
                         stdout "$quiet" git stash apply stash@{0}
-                        echo "[ERROR] Merge failed, nothing changed. Use '-u merge-overwrite' to overwrite remote content, '-u merge-or-branch' to push changes to new remote branch, '-u merge-or-stash' to keep remote changes (stash local changes). Or you can hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
+                        stdout "$quiet" echo "[INFO] Use '-u merge-overwrite' to overwrite remote content"
+                        stdout "$quiet" echo "[INFO] Use '-u merge-or-branch' to push changes to new remote branch"
+                        stdout "$quiet" echo "[INFO] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
+                        stdout "$quiet" echo "[INFO] Or you can hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased."
+                        echo "[ERROR] Merge failed, nothing changed." | fold -s
                         exit 2
                     fi
                 else
@@ -485,4 +490,4 @@ while getopts "${optstring}" arg; do
     esac
 done
 shift "$((OPTIND-1))"
-stdout "$quiet" echo "[END] Success"
+stdout "$quiet" echo "[INFO] Success"
