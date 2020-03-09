@@ -1,6 +1,6 @@
 #!/bin/bash
 # Git administration
-
+# Edited 2020-03-09
 # Titles generator
 symbol="*"
 paddingSymbol=" "
