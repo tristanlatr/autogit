@@ -1,43 +1,17 @@
 #!/bin/bash
-# Git administration
-# Edited 2020-03-09
-# Titles generator
-symbol="*"
-paddingSymbol=" "
-lineLength=70
-function generatePadding() {
-    string="";
-    for (( i=0; i < $2; i++ )); do
-        string+="$1";
-    done
-    echo "$string";
-}
-remainingLength=$(( $lineLength - 2 ));
-line=$(generatePadding "${symbol}" "${lineLength}");
-function generateTitle() {
-    totalCharsToPad=$((remainingLength - ${#1}));
-    charsToPadEachSide=$((totalCharsToPad / 2));
-    padding=$(generatePadding "$paddingSymbol" "$charsToPadEachSide");
-    totalChars=$(( ${#symbol} + ${#padding} + ${#1} + ${#padding} + ${#symbol} ));
-    echo "$line"
-    if [[ ${totalChars} < ${lineLength} ]]; then
-        echo "${symbol}${padding}${1}${padding}${paddingSymbol}${symbol}";
-    else
-        echo "${symbol}${padding}${1}${padding}${symbol}";
-    fi
-    echo "$line"
-}
+# Git administration script
+# Edited 2020-03-10
 
-#Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
+# Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t,'
 
 quick_usage(){
     usage="
-    Usage: $0 [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] 
+    Usage: $0 [-h] [-q] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] 
     [-u <Strategy>] [-a] [-m <Commit msg text> ][-f <Commit msg file>] 
     [-t <Commit hash to reset>] [-i <Number of commits to show>]
-    -r <Repository path(s)>"
+    -r <Repository path>"
     echo "${usage}"
 }
 
@@ -109,7 +83,7 @@ usage(){
     echo "${long_usage}" | fold -s
 }
 
-# commit_local_changes "timestamp name" "msg text (can be none)" "msg text from file (can be none)"
+# Usage: commit_local_changes "name  (required)" ["msg text (not required)" "msg text from file (not required)"
 commit_local_changes(){
     echo "[INFO] Committing changes"
     if [[ "$#" -eq 1 ]] ; then
@@ -123,21 +97,24 @@ commit_local_changes(){
 
 # with_ssh_key "command" "ssh key path (can be empty)"
 with_ssh_key(){
-    return_val=64
     # echo "[DEBUG] with_ssh_key param: $@"
-    set +e
-    if  [[ "$#" -eq 2 ]] && [[ ! -z "$2" ]]; then
+    if [[ "$#" -eq 2 ]] && [[ ! -z "$2" ]]; then
         echo "[INFO] Using SSH key"
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
-        ssh-agent bash -c "ssh-add $2 && $1"
-        return_val=$?
-        git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
+        if ! ssh-agent bash -c "ssh-add $2 && $1"
+        then
+            git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
+            return 1
+        else
+            git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
+        fi
     else
-        bash -c $1
-        return_val=$?
+        if ! bash -c $1
+        then
+            return 1
+        fi
     fi
-    set -e
-    return $return_val
+
 }
 
 # stdout "<Quiet true/false>" mycommand args
@@ -147,18 +124,18 @@ stdout() {
     if [[ "${quiet}" = true ]]; then
         stdout="/tmp/command-stdout.txt"
         stderr='/tmp/command-stderr.txt'
-        if ! $@ </dev/null >$stdout 2>$stderr; then
-            return_val=$?
+        if ! $@ </dev/null >$stdout 2>$stderr
+        then
             cat $stderr >&2
             rm -f $stdout $stderr
-            return return_val
+            return 1
         fi
         # echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
         rm -f $stdout $stderr
     else
-        if ! $@; then
-            return_val=$?
-            return return_val
+        if ! $@
+        then
+            return 1
         fi
     fi
 }
@@ -176,6 +153,8 @@ nb_stash_to_keep=10
 git_add_untracked=false
 optstring="hqk:c:m:f:ar:b:t:u:i:"
 quiet=false
+
+
 
 while getopts "${optstring}" arg; do
     case "${arg}" in
