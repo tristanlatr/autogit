@@ -1,17 +1,43 @@
 #!/bin/bash
-# Git administration script
-# Edited 2020-03-10
+# Git administration
+# Edited 2020-03-09
+# Titles generator
+symbol="*"
+paddingSymbol=" "
+lineLength=70
+function generatePadding() {
+    string="";
+    for (( i=0; i < $2; i++ )); do
+        string+="$1";
+    done
+    echo "$string";
+}
+remainingLength=$(( $lineLength - 2 ));
+line=$(generatePadding "${symbol}" "${lineLength}");
+function generateTitle() {
+    totalCharsToPad=$((remainingLength - ${#1}));
+    charsToPadEachSide=$((totalCharsToPad / 2));
+    padding=$(generatePadding "$paddingSymbol" "$charsToPadEachSide");
+    totalChars=$(( ${#symbol} + ${#padding} + ${#1} + ${#padding} + ${#symbol} ));
+    echo "$line"
+    if [[ ${totalChars} < ${lineLength} ]]; then
+        echo "${symbol}${padding}${1}${padding}${paddingSymbol}${symbol}";
+    else
+        echo "${symbol}${padding}${1}${padding}${symbol}";
+    fi
+    echo "$line"
+}
 
-# Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
+#Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t,'
 
 quick_usage(){
     usage="
-    Usage: $0 [-h] [-q] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] 
+    Usage: $0 [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] 
     [-u <Strategy>] [-a] [-m <Commit msg text> ][-f <Commit msg file>] 
     [-t <Commit hash to reset>] [-i <Number of commits to show>]
-    -r <Repository path>"
+    -r <Repository path(s)>"
     echo "${usage}"
 }
 
@@ -83,7 +109,7 @@ usage(){
     echo "${long_usage}" | fold -s
 }
 
-# Usage: commit_local_changes "name  (required)" ["msg text (not required)" "msg text from file (not required)"
+# commit_local_changes "timestamp name" "msg text (can be none)" "msg text from file (can be none)"
 commit_local_changes(){
     echo "[INFO] Committing changes"
     if [[ "$#" -eq 1 ]] ; then
@@ -114,20 +140,6 @@ with_ssh_key(){
     return $return_val
 }
 
-#Script configuration
-host=`hostname`
-init_folder=`pwd`
-repositoryIsSet=false
-repositories=()
-ssh_key=""
-git_clone_url=""
-commit_msg_from_file=""
-commit_msg_text=""
-nb_stash_to_keep=10
-git_add_untracked=false
-optstring="hqk:c:m:f:ar:b:t:u:i:"
-quiet=false
-
 # stdout "<Quiet true/false>" mycommand args
 stdout() {
     quiet=$1
@@ -150,6 +162,20 @@ stdout() {
         fi
     fi
 }
+
+#Script configuration
+host=`hostname`
+init_folder=`pwd`
+repositoryIsSet=false
+repositories=()
+ssh_key=""
+git_clone_url=""
+commit_msg_from_file=""
+commit_msg_text=""
+nb_stash_to_keep=10
+git_add_untracked=false
+optstring="hqk:c:m:f:ar:b:t:u:i:"
+quiet=false
 
 while getopts "${optstring}" arg; do
     case "${arg}" in
