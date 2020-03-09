@@ -1,6 +1,6 @@
 #!/bin/bash
 # Git administration script
-# Edited 2020-03-10
+# Edited 2019-03-10
 
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
