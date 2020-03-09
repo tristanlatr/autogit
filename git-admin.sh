@@ -99,7 +99,7 @@ usage(){
     echo "${long_usage}" | fold -s
 }
 
-# Usage: commit_local_changes "name  (required)" ["msg text (not required)" "msg text from file (not required)"
+# Usage: commit_local_changes "name (required)" "msg text (not required)" "msg text from file (not required)"
 commit_local_changes(){
     echo "[INFO] Committing changes"
     if [[ "$#" -eq 1 ]] ; then
@@ -111,7 +111,7 @@ commit_local_changes(){
     fi
 }
 
-# with_ssh_key "command" "ssh key path (can be empty)"
+# Usage: with_ssh_key "command --args" "ssh key path (not required)"
 with_ssh_key(){
     # echo "[DEBUG] with_ssh_key param: $@"
     if [[ "$#" -eq 2 ]] && [[ ! -z "$2" ]]; then
@@ -130,10 +130,9 @@ with_ssh_key(){
             return 1
         fi
     fi
-
 }
 
-# stdout "<Quiet true/false>" mycommand args
+# Usage logger "quiet: <true/false> (required)" command --args (required)
 logger() {
     is_quiet=$1
     shift
@@ -156,6 +155,7 @@ logger() {
     fi
 }
 
+# Usage: exec_or_fail command --args (required)
 exec_or_fail(){
     if ! $@
     then
