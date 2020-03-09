@@ -109,25 +109,24 @@ usage(){
     echo "${long_usage}" | fold -s
 }
 
-# commit_local_changes "timestamp name" "msg text" "msg text from file"
+# commit_local_changes "timestamp name" "msg text (can be none)" "msg text from file (can be none)"
 commit_local_changes(){
     echo "[INFO] Committing changes"
-    if [[ -n "${3}" ]] && [[ -z "${2}" ]]; then
-        git commit -a -m "${1}" -m "${3}"
-    elif [[ -z "${3}" ]] && [[ -n "${2}" ]]; then
-        git commit -a -m "${2}" -m "${1}"
-    elif [[ -n "${3}" ]] && [[ -n "${2}" ]]; then
-        git commit -a -m "${2}" -m "${1}" -m "${3}"
-    else
+    if [[ "$#" -eq 1 ]] ; then
         git commit -a -m "${1}"
+    elif [[ "$#" -eq 2 ]]; then
+        git commit -a -m "${2}" -m "${1}"
+    elif [[ "$#" -eq 3 ]]; then
+        git commit -a -m "${2}" -m "${1}" -m "${3}"
     fi
 }
 
-# with_ssh_key "command" "ssh key path"
+# with_ssh_key "command" "ssh key path (can be empty)"
 with_ssh_key(){
     return_val=64
+    # echo "[DEBUG] with_ssh_key param: $@"
     set +e
-    if [[ ! -z "$2" ]]; then
+    if  [[ "$#" -eq 2 ]] && [[ ! -z "$2" ]]; then
         echo "[INFO] Using SSH key"
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
         ssh-agent bash -c "ssh-add $2 && $1"
@@ -155,12 +154,13 @@ git_add_untracked=false
 optstring="hqk:c:m:f:ar:b:t:u:i:"
 quiet=false
 
-# stdout <Quiet true/false> mycommand args
+# stdout "<Quiet true/false>" mycommand args
 stdout() {
-    if [[ "${1}" = true ]]; then
+    quiet=$1
+    shift
+    if [[ "${quiet}" = true ]]; then
         stdout="/tmp/command-stdout.txt"
         stderr='/tmp/command-stderr.txt'
-        shift
         if ! $@ </dev/null >$stdout 2>$stderr; then
             cat $stderr >&2
             rm -f $stdout $stderr
@@ -169,7 +169,9 @@ stdout() {
         # echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
         rm -f $stdout $stderr
     else
-        "${arguments[@]:1}"
+        if ! $@; then
+            return 1
+        fi
     fi
 }
 
@@ -211,7 +213,7 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
-#stdout "$quiet" echo "[INFO] Begin"
+stdout "$quiet" echo "[BEGIN]"
 while getopts "${optstring}" arg; do
     case "${arg}" in
         k)
@@ -284,7 +286,7 @@ while getopts "${optstring}" arg; do
                 cd "${init_folder}"
                 break
             done
-            generateTitle "End (reset)"
+            stdout "$quiet" echo "End (reset)"
             exit
             ;;
     esac
@@ -294,22 +296,22 @@ while getopts "${optstring}" arg; do
     case "${arg}" in
         b) #Checkout
             for folder in ${repositories}; do
-                generateTitle "Checkout ${folder} on branch ${OPTARG}"
+                stdout "$quiet" echo "[INFO] Checkout ${folder} on branch ${OPTARG}"
                 cd $folder
                 branch=`git rev-parse --abbrev-ref HEAD`
                 if [[ ! "${OPTARG}" == "${branch}" ]]; then
                     if git diff-files --quiet -- && git diff-index --quiet --cached --exit-code HEAD
                     then
-                        if ! git checkout -b ${OPTARG}
+                        if ! stdout "$quiet" git checkout -b ${OPTARG}
                         then
-                            git checkout ${OPTARG}
+                            stdout "$quiet" git checkout ${OPTARG}
                         fi
                     else
                         echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." | fold -s
                         exit 6
                     fi
                 else
-                    echo "[INFO] Already on branch ${OPTARG}"
+                    stdout "$quiet" echo "[INFO] Already on branch ${OPTARG}"
                 fi
 
                 cd "${init_folder}"
@@ -324,7 +326,7 @@ while getopts "${optstring}" arg; do
             for folder in ${repositories}; do
                 
                 cd $folder
-                generateTitle "Updating ${folder}"
+                stdout "$quiet" echo "[INFO] Updating ${folder}"
                 strategy=${OPTARG}
 
                 if [[ ! "${strategy}" =~ "merge" ]] && [[ ! "${strategy}" =~ "stash" ]]; then
@@ -339,49 +341,48 @@ while getopts "${optstring}" arg; do
 
                     if [[ "${git_add_untracked}" = true ]]; then
                         echo "[INFO] Adding untracked files"
-                        git add .
+                        stdout "$quiet" git add .
                         git_stash_args="--include-untracked"
                     fi
 
-                    echo "[INFO] Locally changed files:"
-                    git status -s
+                    stdout "$quiet" echo "[INFO] Locally changed files:"
+                    stdout "$quiet" git status -s
 
                     # If staged or unstaged changes in the tracked files in the working tree
                     if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
                     then
-                        echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
+                        stdout "$quiet" echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
 
                         if ! git stash save ${git_stash_args} "${commit_and_stash_name}"
                         then
-                            echo "[ERROR] Unable to save stash"
-                            echo "[INFO] Please solve conflicts and clean working tree manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased." | fold -s
-                            generateTitle "End. Error: Repository is in a conflict state"
+                            echo "[ERROR] Unable to save stash, repository can be in a conflict state"
+                            echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" | fold -s
                             exit 7
                         else
                             if [[ -z `git stash list | grep "${commit_and_stash_date}"` ]] && [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
-                                echo "[ERROR] Looks like your stash could not be saved, to continue anyway, please use '-u merge-or-fail'"
+                                echo "[ERROR] Looks like your stash could not be saved or you have no changes to save, to continue anyway, please use '-u merge-or-fail'" | fold -s
                                 exit 8
                             fi
                         fi
 
                         if [[ "${strategy}" =~ "merge" ]]; then
                             if [[ -n `git stash list | grep "${commit_and_stash_date}"` ]]; then
-                                echo "[INFO] Applying stash in order to merge"
+                                stdout "$quiet" echo "[INFO] Applying stash in order to merge"
                                 git stash apply --quiet stash@{0}
                             else
-                                echo "[WARNING] Your changes are ot stashed"
+                                stdout "$quiet" echo "[WARNING] Your changes are not saved as stash"
                             fi
 
-                            commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                            stdout "$quiet" commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
                         fi
                     fi
 
                 else
-                    echo "[INFO] No local changes"
+                    stdout "$quiet" echo "[INFO] No local changes"
                 fi
 
                 echo "[INFO] Merging"
-                if ! with_ssh_key "git pull" "${ssh_key}"
+                if ! stdout "$quiet" with_ssh_key "git pull" "${ssh_key}"
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
@@ -495,4 +496,4 @@ while getopts "${optstring}" arg; do
     esac
 done
 shift "$((OPTIND-1))"
-generateTitle "End (success)"
+stdout "$quiet" echo "[END] Success"
