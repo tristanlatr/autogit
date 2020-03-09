@@ -83,6 +83,8 @@ usage(){
         
         -i <Number of commits to show>  Shows tracked files, git status and commit history of last N commits.
 
+        -q      Be quiet, to not print anything except errors.
+
     Examples : 
 
         $ $0 -r ~/isrm-portal-conf/ -b stable -u merge -i 5
@@ -150,11 +152,29 @@ commit_msg_from_file=""
 commit_msg_text=""
 nb_stash_to_keep=10
 git_add_untracked=false
-optstring="hk:c:m:f:ar:b:t:u:i:"
+optstring="hqk:c:m:f:ar:b:t:u:i:"
+quiet=false
+
+# stdout 
+stdout() {
+    if [[ "$quiet" = true ]]; then
+        stdout="/tmp/command-stdout.txt"
+        stderr='/tmp/command-stderr.txt'
+        if ! "$@" </dev/null >$stdout 2>$stderr; then
+            cat $stderr >&2
+            rm -f $stdout $stderr
+            return 1
+        fi
+        rm -f $stdout $stderr
+    else
+        "$@"
+    fi
+}
 
 while getopts "${optstring}" arg; do
     case "${arg}" in
         h) ;;
+        q) ;;
         k) ;;
         c) ;;
         m) ;;
@@ -184,20 +204,23 @@ OPTIND=1
 generateTitle "Begin"
 while getopts "${optstring}" arg; do
     case "${arg}" in
+        q)
+            quiet=true
+            ;;
         k)
             ssh_key=${OPTARG}
-            echo "[INFO] SSH key set ${ssh_key}"
+            echo "[INFO] SSH key: ${ssh_key}"
             ;;
         c)
             git_clone_url=${OPTARG}
-            echo "[INFO] Git clone URL set ${git_clone_url}"
+            echo "[INFO] Git server URL: ${git_clone_url}"
             ;;
         f)
-            echo "[INFO] Commit message file set ${OPTARG}"
+            echo "[INFO] Commit message file: ${OPTARG}"
             commit_msg_from_file=`cat "${OPTARG}"`
             ;;
         m)
-            echo "[INFO] Commit message set ${OPTARG}"
+            echo "[INFO] Commit message: ${OPTARG}"
             commit_msg_text="${OPTARG}"
             ;;
         a)
@@ -240,7 +263,7 @@ while getopts "${optstring}" arg; do
 done
 OPTIND=1
 if [[ "$repositoryIsSet" = false ]]; then
-    echo "[ERROR] You need to set the repository -r <Path> to continue."
+    echo "[ERROR] You need to set the repository '-r <Path>' to continue."
     exit 5
 fi 
 while getopts "${optstring}" arg; do
