@@ -155,19 +155,21 @@ git_add_untracked=false
 optstring="hqk:c:m:f:ar:b:t:u:i:"
 quiet=false
 
-# stdout 
+# stdout <Quiet true/false> mycommand args
 stdout() {
-    if [[ "$quiet" = true ]]; then
+    if [[ "${1}" = true ]]; then
         stdout="/tmp/command-stdout.txt"
         stderr='/tmp/command-stderr.txt'
-        if ! "$@" </dev/null >$stdout 2>$stderr; then
+        shift
+        if ! $@ </dev/null >$stdout 2>$stderr; then
             cat $stderr >&2
             rm -f $stdout $stderr
             return 1
         fi
+        # echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
         rm -f $stdout $stderr
     else
-        "$@"
+        "${arguments[@]:1}"
     fi
 }
 
@@ -201,27 +203,33 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
-generateTitle "Begin"
 while getopts "${optstring}" arg; do
     case "${arg}" in
         q)
             quiet=true
             ;;
+    esac
+done
+OPTIND=1
+#stdout "$quiet" echo "[INFO] Begin"
+while getopts "${optstring}" arg; do
+    case "${arg}" in
         k)
             ssh_key=${OPTARG}
-            echo "[INFO] SSH key: ${ssh_key}"
+            stdout "$quiet" echo "[INFO] SSH key: ${ssh_key}"
             ;;
         c)
             git_clone_url=${OPTARG}
-            echo "[INFO] Git server URL: ${git_clone_url}"
+            stdout "$quiet" echo "[INFO] Git server URL: ${git_clone_url}"
             ;;
         f)
-            echo "[INFO] Commit message file: ${OPTARG}"
             commit_msg_from_file=`cat "${OPTARG}"`
+            stdout "$quiet" echo "[INFO] Commit message file: ${OPTARG}"
+
             ;;
         m)
-            echo "[INFO] Commit message: ${OPTARG}"
             commit_msg_text="${OPTARG}"
+            stdout "$quiet" echo "[INFO] Commit message: ${OPTARG}"
             ;;
         a)
             git_add_untracked=true
@@ -237,19 +245,19 @@ while getopts "${optstring}" arg; do
                 
                 if [[ -d "$folder" ]]; then
                     cd $folder
-                    with_ssh_key "git remote update" "${ssh_key}"
+                    stdout "$quiet" with_ssh_key "git remote update" "${ssh_key}"
                     branch=`git rev-parse --abbrev-ref HEAD`
-                    echo "[INFO] Check repository $folder on branch ${branch}"
+                    stdout "$quiet" echo "[INFO] Check repository $folder on branch ${branch}"
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
-                        echo "[INFO] Repository do no exist, initating it."
+                        stdout "$quiet" echo "[INFO] Repository do no exist, initating it."
                         mkdir -p ${folder}
                         cd ${folder}
-                        git init
-                        git remote add -t master origin ${git_clone_url} 
-                        with_ssh_key "git remote update" "${ssh_key}"
+                        stdout "$quiet" git init
+                        stdout "$quiet" git remote add -t master origin ${git_clone_url} 
+                        stdout "$quiet" with_ssh_key "git remote update" "${ssh_key}"
                         branch=`git rev-parse --abbrev-ref HEAD`
-                        echo "[INFO] Check repository $folder on branch ${branch}"
+                        stdout "$quiet" echo "[INFO] Check repository $folder on branch ${branch}"
                     else
                         echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo." |  fold -s
                         exit 4
@@ -263,16 +271,16 @@ while getopts "${optstring}" arg; do
 done
 OPTIND=1
 if [[ "$repositoryIsSet" = false ]]; then
-    echo "[ERROR] You need to set the repository '-r <Path>' to continue."
+    echo "[ERROR] You need to set the repository '-r <Path>'."
     exit 5
 fi 
 while getopts "${optstring}" arg; do
     case "${arg}" in
         t) #Reseting to previous commit
             for folder in ${repositories}; do
-                generateTitle "[INFO] Reseting ${folder} to ${OPTARG} commit"
+                stdout "$quiet" echo "[INFO] Reseting ${folder} to ${OPTARG} commit"
                 cd $folder
-                git reset --hard ${OPTARG}
+                stdout "$quiet" git reset --hard ${OPTARG}
                 cd "${init_folder}"
                 break
             done
