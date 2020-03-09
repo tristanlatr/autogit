@@ -217,7 +217,6 @@ while getopts "${optstring}" arg; do
                     with_ssh_key "git remote update" "${ssh_key}"
                     branch=`git rev-parse --abbrev-ref HEAD`
                     echo "[INFO] Check repository $folder on branch ${branch}"
-
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
                         echo "[INFO] Repository do no exist, initating it."
@@ -229,7 +228,7 @@ while getopts "${optstring}" arg; do
                         branch=`git rev-parse --abbrev-ref HEAD`
                         echo "[INFO] Check repository $folder on branch ${branch}"
                     else
-                        echo "[ERROR] Git reposirtory do not exist and '-c <URL>' is not set. Please set git URL to be able to initiate the repo" |  fold -s
+                        echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo." |  fold -s
                         exit 4
                     fi
                 fi
