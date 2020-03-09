@@ -128,14 +128,14 @@ stdout() {
         then
             cat $stderr >&2
             rm -f $stdout $stderr
-            return 1
+            exit 1
         fi
         # echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
         rm -f $stdout $stderr
     else
         if ! $@
         then
-            return 1
+            exit 1
         fi
     fi
 }
