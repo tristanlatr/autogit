@@ -388,11 +388,14 @@ while getopts "${optstring}" arg; do
                         stdout "$quiet" echo "[INFO] Pulling changes with --no-commit flag"
                         if ! stdout "$quiet" with_ssh_key "git pull --no-commit" "${ssh_key}"
                         then
-                            stdout "$quiet" echo "[INFO] In the middle of a merge conflict"
-                        else
-                            stdout "$quiet" echo "[INFO] Git pull successful"
+                            stdout "$quiet" echo "[WARNING] The last commit is also in conflict with remote. Giving up. You can still use '-u merge-or-branch'"
+                            stdout "$quiet" echo "[INFO] Applying last stash and quitting"
+                            stdout "$quiet" git stash apply stash@{0}
+                            echo "[ERROR] Merge failed. Repository is in a conflict state!"
+                            echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" | fold -s
+                            exit 2
                         fi
-                        stdout "$quiet" echo "[INFO] Applying stash in order to merge"
+                        stdout "$quiet" echo "[INFO] Applying last stash in order to merge"
                         if ! stdout "$quiet" git stash apply stash@{0}
                         then
                             git diff > /tmp/git_diff
@@ -420,8 +423,8 @@ while getopts "${optstring}" arg; do
                         stdout "$quiet" commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
                         stdout "$quiet" with_ssh_key "git push -u origin ${conflit_branch}" "${ssh_key}"
                         stdout "$quiet" echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
-                        echo "[ERROR] Repository is on a new branch"
-                        exit 2
+                        echo "[WARNING] Repository is on a new branch"
+                        exit
 
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
                         echo "[ERROR] Merge failed. Repository is in a conflict state!"
