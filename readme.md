@@ -1,4 +1,4 @@
-### git-admin
+### autogit
 
 This script is designed to programatically update a git repository: pull and push changes from and to a one or several repositories.
         
