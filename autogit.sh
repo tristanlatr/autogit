@@ -397,7 +397,7 @@ while getopts "${optstring}" arg; do
                 fi
 
                 logger $is_quiet echo "[INFO] Merging"
-                if ! logger $is_quiet with_ssh_key "git pull --quiet" "${ssh_key}"
+                if ! logger $is_quiet with_ssh_key "git pull" "${ssh_key}"
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
@@ -470,7 +470,7 @@ while getopts "${optstring}" arg; do
                         logger $is_quiet echo "[INFO] Dry mode: would have push changes"
                     else
                         logger $is_quiet echo "[INFO] Pushing changes"
-                        exec_or_fail logger $is_quiet with_ssh_key "git push -u --quiet origin ${branch}" "${ssh_key}"
+                        exec_or_fail logger $is_quiet with_ssh_key "git push -u origin ${branch}" "${ssh_key}"
                     fi
                 fi
 
