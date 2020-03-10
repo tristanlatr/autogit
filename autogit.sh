@@ -10,7 +10,7 @@ IFS=$'\n\t,'
 host=`hostname`
 init_folder=`pwd`
 optstring="hqnk:c:m:f:ar:b:t:u:i:"
-nb_stash_to_keep=-1
+nb_stash_to_keep=10
 
 # Script config
 repositories=()
