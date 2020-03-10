@@ -168,7 +168,7 @@ logger() {
 exec_or_fail(){
     if ! $@
     then
-        echo "[ERROR] Unhandled error, command failed: $@"
+        echo "[ERROR] Fatal error. Failed command: '$@'"
         exit 1
     fi
 }
