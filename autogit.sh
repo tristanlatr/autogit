@@ -10,7 +10,7 @@ IFS=$'\n\t,'
 host=`hostname`
 init_folder=`pwd`
 optstring="hqnk:c:m:f:ar:b:t:u:i:"
-nb_stash_to_keep=100
+nb_stash_to_keep=-1
 
 # Script config
 repositories=()
@@ -463,11 +463,11 @@ while getopts "${optstring}" arg; do
                     logger $is_quiet echo "[INFO] Merge success"
                 fi
                 branch=`git rev-parse --abbrev-ref HEAD`
-                if [[ "${strategy}" =~ "merge" ]]; then
+                if [[ "${strategy}" =~ "merge" ]] && [[ -n `git diff --stat --cached origin/${branch}` ]]; then
                     if [[ $dry_mode = true ]]; then
                         logger $is_quiet echo "[INFO] Dry mode: would have push changes"
                     else
-                        logger $is_quiet echo "[INFO] Pushing changes (if any)"
+                        logger $is_quiet echo "[INFO] Pushing changes"
                         exec_or_fail logger $is_quiet with_ssh_key "git push -u --quiet origin ${branch}" "${ssh_key}"
                     fi
                 fi
