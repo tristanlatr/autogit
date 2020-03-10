@@ -9,11 +9,10 @@ IFS=$'\n\t,'
 # Script constants
 host=`hostname`
 init_folder=`pwd`
-optstring="hqk:c:m:f:ar:b:t:u:i:"
-nb_stash_to_keep=10
+optstring="hqnk:c:m:f:ar:b:t:u:i:"
+nb_stash_to_keep=100
 
 # Script config
-repositoryIsSet=false
 repositories=()
 ssh_key=""
 git_clone_url=""
@@ -21,10 +20,11 @@ commit_msg_from_file=""
 commit_msg_text=""
 git_add_untracked=false
 is_quiet=false
+dry_mode=false
 
 quick_usage(){
     usage="
-    Usage: $0 [-h] [-q] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] 
+    Usage: $0 [-h] [-q] [-n] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] 
     [-u <Strategy>] [-a] [-m <Commit msg text> ][-f <Commit msg file>] 
     [-t <Commit hash to reset>] [-i <Number of commits to show>]
     -r <Repository path>"
@@ -33,9 +33,11 @@ quick_usage(){
 
 usage(){
     long_usage="
-    This script is designed to programatically manage merge, pull and push changes from and to a git repository.
+    This script is designed to programatically update a git repository: pull and push changes from and to a one or several repositories.
         
-    The script can't solve merge conflict that already exists before calling the script.
+    The script doesn't work if there is a merge conflict in your repo.
+
+    This script can leave your repo in a merge conflict.
     
     Options:
 
@@ -43,25 +45,25 @@ usage(){
        
         -k <Key>    Path to a trusted ssh key to authenticate against the git server (push). Required if git authentication is not already working with default key.
         
-        -c <Url>    URL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several reposities, the same URL will used for all. Multiple repo values are not supported by this feature.
+        -c <Url>    URL of the git source. The script will use 'git remote add origin URL' if the repo folder doesn't exist and init the repo on master branch. Required if the repo folder doesn't exists. Warning, if you declare several repositories, the same URL will used for all. Multiple repo values are not supported by this feature.
         
         -r <Paths>  Path to managed repository, can be multiple comma separated. Only remote 'origin' can be used. Warning make sure all repositories exists, multiple repo values are not supported by the git clone feature '-c'. Repository path(s) should end with the default git repo folder name after git clone. Required.
         
         -b <Branch> Switch to the specified branch or tag. Fail if changed files in working tree, please merge changes first.
         
-        -u <Strategy>   Update the current branch from and to upstream, can adopt 7 strategies. This feature supports multiple repo values !
+        -u <Strategy>   Update the current branch from and to upstream, can adopt 6 strategies. This feature supports multiple repo values !
           
-            - 'merge' -> Default merge. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Should exit with code 0. Require a write access to git server.
+            - 'merge' -> Default merge. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Exit with code 2 if merge failed. Require a write access to git server.
             
-            - 'merge-overwrite' -> Keep local changes. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, reset, pull, re-apply saved changes, accept only local changes in the merge, commit and push to remote. Should exit with code 0. Require a write access to git server.
+            - 'merge-overwrite' -> Keep local changes. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, reset, pull, re-apply saved changes, merge accept only local changes (overwrite), commit and push to remote. Warning, the overwrite might fail leaving the repository in a conflict state if you edited local files. Exit with code 2 if overwrite failed. Require a write access to git server.
            
-            - 'merge-or-stash' -> Keep remote changes. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash), exit code 2. Require a write access to git server.    
+            - 'merge-or-stash' -> Keep remote changes. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash). Exit with code 2 if merge failed. Require a write access to git server.    
           
-            - 'merge-or-branch' -> Merge or create a new remote branch. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote (leaving the repository in a new branch with exit code 2). Require a write access to git server.
+            - 'merge-or-branch' -> Merge or create a new remote branch. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote leaving the repository in a new branch. Exit with code 2 if merge failed. Require a write access to git server.
           
-            - 'merge-or-fail' -> Merge or leave the reposity in a conflict. Warning if there is a conflict. Save changes as stash (if-any) (this step can fail, the sctipt will continue without saving the stash), apply them, commit, pull and push, if pull fails, will leave the git repositiry in a conflict state with exit code 2. Require a write access to git server.
+            - 'merge-or-fail' -> Merge or leave the reposity in a conflict. Warning if there is a conflict. Save changes as stash and apply them (if-any) (Warning: this step can fail, the sctipt will continue without saving the stash), commit, pull and push, if pull fails, leave the git repositiry in a conflict state with exit code 2. Require a write access to git server.
          
-            - 'stash' -> Always update from remote. Stash the changes and pull. Should exit with code 0. Do not require a write acces to git server.
+            - 'stash' -> Always update from remote. Stash the changes and pull. Do not require a write acces to git server.
 
         -a  Add untracked files to git. To use with '-u <Strategy>'.
         
@@ -73,7 +75,9 @@ usage(){
         
         -i <Number of commits to show>  Shows tracked files, git status and commit history of last N commits.
 
-        -q      Be quiet, to not print anything except errors.
+        -q      Be quiet, to not print anything except errors and informations if you ask for it with '-i <n>'.
+
+        -n      Dry mode. Do not commit or push. If you specify an update strategy with '-u <Strategy>', the script will still pull and merge remote changes into working copy.
 
     Examples : 
 
@@ -99,15 +103,20 @@ usage(){
     echo "${long_usage}" | fold -s
 }
 
-# Usage: commit_local_changes "name (required)" "msg text (not required)" "msg text from file (not required)"
+# Usage: commit_local_changes "dry_mode (required true/false)" "name (required)" "msg text (not required)" "msg text from file (not required)"
 commit_local_changes(){
-    echo "[INFO] Committing changes"
-    if [[ "$#" -eq 1 ]] ; then
-        git commit -a -m "${1}"
-    elif [[ "$#" -eq 2 ]]; then
-        git commit -a -m "${2}" -m "${1}"
-    elif [[ "$#" -eq 3 ]]; then
-        git commit -a -m "${2}" -m "${1}" -m "${3}"
+    dry_mode=$1
+    if [[ $dry_mode = false ]]; then
+        echo "[INFO] Committing changes"
+        if [[ "$#" -eq 1 ]] ; then
+            git commit -a -m "${1}"
+        elif [[ "$#" -eq 2 ]]; then
+            git commit -a -m "${2}" -m "${1}"
+        elif [[ "$#" -eq 3 ]]; then
+            git commit -a -m "${2}" -m "${1}" -m "${3}"
+        fi
+    elif [[ $dry_mode = true ]]; then
+        echo "[INFO] Dry mode: would have commit changes: $2"
     fi
 }
 
@@ -165,7 +174,7 @@ exec_or_fail(){
 }
 
 is_changes_in_tracked_files(){
-    if ! git diff-files --quiet -- && git diff-index --quiet --cached --exit-code HEAD
+    if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
     then
         return 0
     else
@@ -178,6 +187,7 @@ while getopts "${optstring}" arg; do
         h) ;;
         q) ;;
         k) ;;
+        n) ;;
         c) ;;
         m) ;;
         f) ;;
@@ -203,14 +213,10 @@ while getopts "${optstring}" arg; do
 done
 OPTIND=1
 
-logger $is_quiet echo "                                                                ";
-logger $is_quiet echo "       ,--.  ,--.                    ,--.          ,--.         ";
-logger $is_quiet echo " ,---. \`--',-'  '-.,-----. ,--,--. ,-|  |,--,--,--.\`--',--,--,  ";
-logger $is_quiet echo "| .-. |,--.'-.  .-''-----'' ,-.  |' .-. ||        |,--.|      \ ";
-logger $is_quiet echo "' '-' '|  |  |  |         \ '-'  |\ \`-' ||  |  |  ||  ||  ||  | ";
-logger $is_quiet echo ".\`-  / \`--'  \`--'          \`--\`--' \`---' \`--\`--\`--'\`--'\`--''--' ";
-logger $is_quiet echo "\`---'                                                           ";
-logger $is_quiet echo "---------------------------------------------------------------"
+logger $is_quiet echo "          ___  __   __    ___ ";
+logger $is_quiet echo " /\  |  |  |  /  \ / _\` |  |  ";
+logger $is_quiet echo "/~~\ \__/  |  \__/ \__> |  |  ";
+logger $is_quiet echo "                              ";
 
 while getopts "${optstring}" arg; do
     case "${arg}" in
@@ -242,6 +248,9 @@ while getopts "${optstring}" arg; do
             ;;
         a)
             git_add_untracked=true
+            ;;
+        n)
+            dry_mode=true
             ;;
     esac
 done
@@ -275,13 +284,12 @@ while getopts "${optstring}" arg; do
                 fi
                 cd "${init_folder}"
             done
-            repositoryIsSet=true
             ;;
     esac
 done
 OPTIND=1
-if [[ "$repositoryIsSet" = false ]]; then
-    echo "[ERROR] You need to set the repository '-r <Path>'."
+if [[ ${#repositories[@]} -eq 0 ]]; then
+    echo "[ERROR] You need to set the repository '-r <Path(s)>'."
     exit 5
 fi 
 while getopts "${optstring}" arg; do
@@ -335,15 +343,15 @@ while getopts "${optstring}" arg; do
                 logger $is_quiet echo "[INFO] Updating ${folder}"
                 strategy=${OPTARG}
 
-                if [[ ! "${strategy}" =~ "merge" ]] && [[ ! "${strategy}" =~ "stash" ]]; then
-                    echo "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument. Please see '$0 -h' for more infos." | fold -s
+                if [[ ! "${strategy}" = "merge" ]] && [[ ! "${strategy}" = "merge-overwrite" ]] && [[ ! "${strategy}" = "merge-or-branch" ]] && [[ ! "${strategy}" = "merge-or-stash" ]] && [[ ! "${strategy}" = "merge-or-fail" ]] && [[ ! "${strategy}" = "stash" ]]; then
+                    echo -e "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument.\nPlease see '$0 -h' for more infos." | fold -s
                     exit 3
                 fi
                 # If there is any kind of changes in the working tree
                 if [[ -n `git status -s` ]]; then
                     git_stash_args=""
                     commit_and_stash_date=`date +"%Y-%m-%dT%H-%M-%S"`
-                    commit_and_stash_name="[git-admin] Changes on ${host} ${commit_and_stash_date}"
+                    commit_and_stash_name="[autogit] Changes on ${host} ${commit_and_stash_date}"
 
                     if [[ "${git_add_untracked}" = true ]]; then
                         logger $is_quiet echo "[INFO] Adding untracked files"
@@ -373,12 +381,12 @@ while getopts "${optstring}" arg; do
                         if [[ "${strategy}" =~ "merge" ]]; then
                             if [[ -n `git stash list | grep "${commit_and_stash_date}"` ]]; then
                                 logger $is_quiet echo "[INFO] Applying stash in order to merge"
-                                exec_or_fail logger $is_quiet git stash apply stash@{0}
+                                exec_or_fail logger $is_quiet git stash apply --quiet stash@{0}
                             else
                                 logger $is_quiet echo "[WARNING] Your changes are not saved as stash"
                             fi
 
-                            exec_or_fail logger $is_quiet commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                            exec_or_fail logger $is_quiet commit_local_changes "$dry_mode" "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
                         fi
                     fi
 
@@ -413,19 +421,26 @@ while getopts "${optstring}" arg; do
                         logger $is_quiet echo "[INFO] Applying last stash in order to merge"
                         if ! logger $is_quiet git stash apply stash@{0}
                         then
-                            git diff > /tmp/git_diff
-                            logger $is_quiet echo "[INFO] Diff:"
-                            logger $is_quiet cat /tmp/git_diff
+                            # git diff --check> /tmp/git_diff
+                            # logger $is_quiet echo "[INFO] Diff check:"
+                            # logger $is_quiet cat /tmp/git_diff
                             logger $is_quiet echo "[INFO] Overwriting files with stashed changes"
 
-                            for file in `git ls-tree --full-tree -r --name-only HEAD`; do
+                            # Iterate list of conflicted files
+                            for file in `git diff --name-only --diff-filter=U`; do
                                 exec_or_fail logger $is_quiet git checkout --theirs -- ${file}
                                 exec_or_fail logger $is_quiet git add ${file}
                             done
+
+                            # # Overwrite all tracked files with stashed version
+                            # for file in `git ls-tree --full-tree -r --name-only HEAD`; do
+                            #     exec_or_fail logger $is_quiet git checkout --theirs -- ${file}
+                            #     exec_or_fail logger $is_quiet git add ${file}
+                            # done
                         else
                             logger $is_quiet echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
-                        exec_or_fail logger $is_quiet commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        exec_or_fail logger $is_quiet commit_local_changes "$dry_mode" "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
@@ -434,11 +449,9 @@ while getopts "${optstring}" arg; do
                         exec_or_fail logger $is_quiet git checkout -b ${conflit_branch}
                         logger $is_quiet echo "[INFO] Applying stash in order to push to new remote branch"
                         exec_or_fail logger $is_quiet git stash apply stash@{0}
-                        exec_or_fail logger $is_quiet commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
-                        exec_or_fail logger $is_quiet with_ssh_key "git push -u origin ${conflit_branch}" "${ssh_key}"
-                        logger $is_quiet echo "[INFO] You changes are pushed to remote branch ${conflit_branch}. Please merge the branch"
+                        exec_or_fail logger $is_quiet commit_local_changes "$dry_mode" "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        logger $is_quiet echo "[INFO] You changes will be pushed to remote branch ${conflit_branch}. Please merge the branch"
                         echo "[WARNING] Repository is on a new branch"
-                        exit 0
 
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
                         echo "[ERROR] Merge failed. Repository is in a conflict state!"
@@ -461,8 +474,12 @@ while getopts "${optstring}" arg; do
                 fi
                 branch=`git rev-parse --abbrev-ref HEAD`
                 if [[ "${strategy}" =~ "merge" ]]; then
-                    logger $is_quiet echo "[INFO] Pushing changes"
-                    exec_or_fail logger $is_quiet with_ssh_key "git push -u origin ${branch}" "${ssh_key}"
+                    if [[ $dry_mode = true ]]; then
+                        logger $is_quiet echo "[INFO] Dry mode: would have push changes"
+                    else
+                        logger $is_quiet echo "[INFO] Pushing changes"
+                        exec_or_fail logger $is_quiet with_ssh_key "git push -u origin ${branch}" "${ssh_key}"
+                    fi
                 fi
                 tail_n_arg=$(( ${nb_stash_to_keep} + 2))
                 stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
