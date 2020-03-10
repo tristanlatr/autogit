@@ -105,17 +105,26 @@ usage(){
     echo "${long_usage}" | fold -s
 }
 
+# Usage: exec_or_fail command --args (required)
+exec_or_fail(){
+    if ! $@
+    then
+        echo "[ERROR] Fatal error. Failed command: '$@'"
+        exit 1
+    fi
+}
+
 # Usage: commit_local_changes "dry_mode (required true/false)" "name (required)" "msg text (not required)" "msg text from file (not required)"
 commit_local_changes(){
     dry_mode=$1
     if [[ $dry_mode = false ]]; then
         echo "[INFO] Committing changes"
-        if [[ "$#" -eq 1 ]] ; then
-            git commit -a -m "${1}"
-        elif [[ "$#" -eq 2 ]]; then
-            git commit -a -m "${2}" -m "${1}"
+        if [[ "$#" -eq 2 ]] ; then
+            exec_or_fail git commit -a -m "${2}"
         elif [[ "$#" -eq 3 ]]; then
-            git commit -a -m "${2}" -m "${1}" -m "${3}"
+            exec_or_fail git commit -a -m "${3}" -m "${2}"
+        elif [[ "$#" -eq 4 ]]; then
+            exec_or_fail git commit -a -m "${3}" -m "${2}" -m "${4}"
         fi
     elif [[ $dry_mode = true ]]; then
         echo "[INFO] Dry mode: would have commit changes: $2"
@@ -126,7 +135,6 @@ commit_local_changes(){
 with_ssh_key(){
     # echo "[DEBUG] with_ssh_key param: $@"
     if [[ "$#" -eq 2 ]] && [[ ! -z "$2" ]]; then
-        echo "[INFO] Using SSH key"
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
         if ! ssh-agent bash -c "ssh-add $2 && $1"
         then
@@ -163,15 +171,6 @@ logger() {
         then
             return 1
         fi
-    fi
-}
-
-# Usage: exec_or_fail command --args (required)
-exec_or_fail(){
-    if ! $@
-    then
-        echo "[ERROR] Fatal error. Failed command: '$@'"
-        exit 1
     fi
 }
 
