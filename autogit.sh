@@ -467,7 +467,7 @@ while getopts "${optstring}" arg; do
                     if [[ $dry_mode = true ]]; then
                         logger $is_quiet echo "[INFO] Dry mode: would have push changes"
                     else
-                        logger $is_quiet echo "[INFO] Pushing changes"
+                        logger $is_quiet echo "[INFO] Pushing changes (if any)"
                         exec_or_fail logger $is_quiet with_ssh_key "git push -u --quiet origin ${branch}" "${ssh_key}"
                     fi
                 fi
