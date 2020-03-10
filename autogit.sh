@@ -1,6 +1,6 @@
 #!/bin/bash
 # Git administration script
-# Version 3
+# Version 2 Edited 2020
 
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
@@ -263,7 +263,7 @@ while getopts "${optstring}" arg; do
                 
                 if [[ -d "$folder" ]]; then
                     cd $folder
-                    exec_or_fail logger $is_quiet with_ssh_key "git remote update" "${ssh_key}"
+                    exec_or_fail logger $is_quiet with_ssh_key "git fetch --quiet" "${ssh_key}"
                     branch=`git rev-parse --abbrev-ref HEAD`
                     logger $is_quiet echo "[INFO] Check repository $folder on branch ${branch}"
                 else
@@ -415,11 +415,11 @@ while getopts "${optstring}" arg; do
                             logger $is_quiet echo "[WARNING] Last commit is also in conflict with remote. Giving up."
                             echo "[ERROR] Merge overwrite failed. Repository is in a conflict state! Trying to apply last stash and quitting" | fold -s
                             echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" | fold -s
-                            exec_or_fail logger $is_quiet git stash apply stash@{0}
+                            exec_or_fail logger $is_quiet git stash apply --quiet stash@{0}
                             exit 2
                         fi
                         logger $is_quiet echo "[INFO] Applying last stash in order to merge"
-                        if ! logger $is_quiet git stash apply stash@{0}
+                        if ! logger $is_quiet git stash apply --quiet stash@{0}
                         then
                             # git diff --check> /tmp/git_diff
                             # logger $is_quiet echo "[INFO] Diff check:"
@@ -448,7 +448,7 @@ while getopts "${optstring}" arg; do
                         exec_or_fail logger $is_quiet git reset --hard HEAD~1
                         exec_or_fail logger $is_quiet git checkout -b ${conflit_branch}
                         logger $is_quiet echo "[INFO] Applying stash in order to push to new remote branch"
-                        exec_or_fail logger $is_quiet git stash apply stash@{0}
+                        exec_or_fail logger $is_quiet git stash apply --quiet stash@{0}
                         exec_or_fail logger $is_quiet commit_local_changes "$dry_mode" "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
                         logger $is_quiet echo "[INFO] You changes will be pushed to remote branch ${conflit_branch}. Please merge the branch"
                         echo "[WARNING] Repository is on a new branch"
@@ -461,11 +461,11 @@ while getopts "${optstring}" arg; do
                     else
                         logger $is_quiet echo "[WARNING] Merge failed. Reseting to last commit and re-applying stashed changes."
                         exec_or_fail logger $is_quiet git reset --hard HEAD~1
-                        exec_or_fail logger $is_quiet git stash apply stash@{0}
+                        exec_or_fail logger $is_quiet git stash apply --quiet stash@{0}
                         logger $is_quiet echo "[INFO] Use '-u merge-overwrite' to overwrite remote content"
                         logger $is_quiet echo "[INFO] Use '-u merge-or-branch' to push changes to new remote branch"
                         logger $is_quiet echo "[INFO] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
-                        logger $is_quiet echo "[INFO] Or you can hard reset to previous commit using '-t <Commit SHA>' option, your local changes will be erased."
+                        logger $is_quiet echo "[INFO] Or you can hard reset to previous commit using '-t <Commit SHA>' option. Your local changes will be erased."
                         echo "[ERROR] Merge failed, nothing changed." | fold -s
                         exit 2
                     fi
