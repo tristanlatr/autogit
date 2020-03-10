@@ -26,7 +26,7 @@ quick_usage(){
     usage="
     Usage: $0 [-h] [-q] [-n] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] 
     [-u <Strategy>] [-a] [-m <Commit msg text> ][-f <Commit msg file>] 
-    [-t <Commit hash to reset>] [-i <Number of commits to show>]
+    [-t <Commit hash to reset>] [-i <Number of commits to show>] [-s <Number of stash to keep>]
     -r <Repository path>"
     echo "${usage}"
 }
@@ -78,6 +78,8 @@ usage(){
         -q      Be quiet, to not print anything except errors and informations if you ask for it with '-i <n>'.
 
         -n      Dry mode. Do not commit or push. If you specify an update strategy with '-u <Strategy>', the script will still pull and merge remote changes into working copy.
+
+        -s <Number of stashes to keep>   Clean stashes and keep the specfied number.
 
     Examples : 
 
@@ -486,11 +488,11 @@ while getopts "${optstring}" arg; do
                 cd $folder
                 nb_stash_to_keep=${OPTARG}
                 if [[ nb_stash_to_keep -ge 0 ]]; then
-                    tail_n_arg=$(( ${nb_stash_to_keep} + 2))
+                    tail_n_arg=$(( ${nb_stash_to_keep} + 1))
                     stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                     if [[ -n "${stashes}" ]]; then
                         oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
-                        logger $is_quiet echo "[INFO] Cleaning stashes"
+                        logger $is_quiet echo "[INFO] Cleaning stashes $folder"
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
                             if ! logger $is_quiet git stash drop "${stash}"
