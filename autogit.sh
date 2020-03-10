@@ -9,8 +9,8 @@ IFS=$'\n\t,'
 # Script constants
 host=`hostname`
 init_folder=`pwd`
-optstring="hqnk:c:m:f:ar:b:t:u:i:"
-nb_stash_to_keep=10
+optstring="hqnk:c:m:f:ar:b:t:u:i:s:"
+nb_stash_to_keep=-1
 
 # Script config
 repositories=()
@@ -197,6 +197,7 @@ while getopts "${optstring}" arg; do
         t) ;;
         u) ;;
         i) ;;
+        s) ;;
         *)
             quick_usage
             echo "[ERROR] You made a syntax mistake calling the script. Please see '$0 -h' for more infos." | fold -s
@@ -471,26 +472,40 @@ while getopts "${optstring}" arg; do
                         exec_or_fail logger $is_quiet with_ssh_key "git push -u --quiet origin ${branch}" "${ssh_key}"
                     fi
                 fi
-                tail_n_arg=$(( ${nb_stash_to_keep} + 2))
-                stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
-                if [[ -n "${stashes}" ]]; then
-                    oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
-                    logger $is_quiet echo "[INFO] Cleaning stashes"
-                    # Dropping stashes from the oldest, reverse order
-                    for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
-                        if ! logger $is_quiet  git stash drop "${stash}"
-                        then
-                            stash_name=`git stash list | grep "${stash}"`
-                            logger $is_quiet echo "[WARNING] A stash could not be deleted: ${stash_name}"
-                        fi
-                    done
-                fi
+
                 cd "${init_folder}"
             done
             ;;
     esac
 done
 OPTIND=1
+while getopts "${optstring}" arg; do
+    case "${arg}" in
+        s)
+            for folder in ${repositories}; do
+                cd $folder
+                nb_stash_to_keep=${OPTARG}
+                if [[ nb_stash_to_keep -ge 0 ]]; then
+                    tail_n_arg=$(( ${nb_stash_to_keep} + 2))
+                    stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
+                    if [[ -n "${stashes}" ]]; then
+                        oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
+                        logger $is_quiet echo "[INFO] Cleaning stashes"
+                        # Dropping stashes from the oldest, reverse order
+                        for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
+                            if ! logger $is_quiet git stash drop "${stash}"
+                            then
+                                stash_name=`git stash list | grep "${stash}"`
+                                logger $is_quiet echo "[WARNING] A stash could not be deleted: ${stash_name}"
+                            fi
+                        done
+                    fi
+                fi
+            done
+            ;;
+    esac
+done
+OPTIND=1     
 while getopts "${optstring}" arg; do
     case "${arg}" in
         i)
