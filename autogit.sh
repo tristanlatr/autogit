@@ -395,7 +395,7 @@ while getopts "${optstring}" arg; do
                 fi
 
                 logger $is_quiet echo "[INFO] Merging"
-                if ! logger $is_quiet with_ssh_key "git pull" "${ssh_key}"
+                if ! logger $is_quiet with_ssh_key "git pull --quiet" "${ssh_key}"
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
@@ -409,8 +409,8 @@ while getopts "${optstring}" arg; do
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         logger $is_quiet echo "[WARNING] Merge failed. Reseting to last commit"
                         exec_or_fail logger $is_quiet git reset --hard HEAD~1
-                        logger $is_quiet echo "[INFO] Pulling changes with --no-commit flag"
-                        if ! logger $is_quiet with_ssh_key "git pull --no-commit" "${ssh_key}"
+                        logger $is_quiet echo "[INFO] Pulling changes"
+                        if ! logger $is_quiet with_ssh_key "git pull --quiet --no-commit" "${ssh_key}"
                         then
                             logger $is_quiet echo "[WARNING] Last commit is also in conflict with remote. Giving up."
                             echo "[ERROR] Merge overwrite failed. Repository is in a conflict state! Trying to apply last stash and quitting" | fold -s
@@ -421,22 +421,12 @@ while getopts "${optstring}" arg; do
                         logger $is_quiet echo "[INFO] Applying last stash in order to merge"
                         if ! logger $is_quiet git stash apply --quiet stash@{0}
                         then
-                            # git diff --check> /tmp/git_diff
-                            # logger $is_quiet echo "[INFO] Diff check:"
-                            # logger $is_quiet cat /tmp/git_diff
-                            logger $is_quiet echo "[INFO] Overwriting files with stashed changes"
-
-                            # Iterate list of conflicted files
+                            logger $is_quiet echo "[INFO] Overwriting conflicted files with local changes"
+                            # Iterate list of conflicted files and choose stashed version
                             for file in `git diff --name-only --diff-filter=U`; do
                                 exec_or_fail logger $is_quiet git checkout --theirs -- ${file}
                                 exec_or_fail logger $is_quiet git add ${file}
                             done
-
-                            # # Overwrite all tracked files with stashed version
-                            # for file in `git ls-tree --full-tree -r --name-only HEAD`; do
-                            #     exec_or_fail logger $is_quiet git checkout --theirs -- ${file}
-                            #     exec_or_fail logger $is_quiet git add ${file}
-                            # done
                         else
                             logger $is_quiet echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
