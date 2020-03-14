@@ -6,6 +6,8 @@ Warning:
 - The script can leave your repo in a merge conflict.
 - The script won't work if there is a merge conflict in your repo.
 
+Usage summary: `autogit.sh [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] [-u <Strategy>] [-m <Commit msg text> ][-f <Commit msg file>] [-t <Commit hash to reset>] [-i <Number of commits to show>] [-s <Number of stash to keep>] [-a] [-q] -r <Repository path>`
+
 Options:
 
 `-h`      Print this help message.
