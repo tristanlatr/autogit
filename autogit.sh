@@ -11,6 +11,7 @@ host=`hostname`
 init_folder=`pwd`
 optstring="hqnk:c:m:f:ar:b:t:u:i:s:"
 nb_stash_to_keep=-1
+dry_mode=false
 
 # Script config
 repositories=()
@@ -20,10 +21,9 @@ commit_msg_from_file=""
 commit_msg_text=""
 git_add_untracked=false
 is_quiet=false
-dry_mode=false
 
 quick_usage(){
-    curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent | grep "Usage summary" |fold -s
+    curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent | grep "Usage summary" | fold -s
 }
 
 usage(){
@@ -113,7 +113,6 @@ while getopts "${optstring}" arg; do
         h) ;;
         q) ;;
         k) ;;
-        n) ;;
         c) ;;
         m) ;;
         f) ;;
@@ -175,9 +174,6 @@ while getopts "${optstring}" arg; do
             ;;
         a)
             git_add_untracked=true
-            ;;
-        n)
-            dry_mode=true
             ;;
     esac
 done
