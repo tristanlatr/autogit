@@ -32,11 +32,11 @@ Options:
 
 - `stash` -> Always update from remote. Stash the changes and pull. Do not require a write acces to git server.
 
-`-a`  Add untracked files to git. Use with `-u <Strategy>`.
+`-a`  Add untracked files to git. Use with precaution. Use with `-u <Strategy>`.
 
-`-m <Commit msg text>`    The text will be used as the fist line of the commit message, then the generated name with timestamp and then the file content. This can be used with `-f <Commit msg file>`. Use with `'-u <Strategy>'`.
+`-m <Commit msg text>`    The text will be used as the fist line of the commit message, then the generated name with timestamp and then the file content. This can be used with `-f <Commit msg file>`. Use with `-u <Strategy>`.
 
-`-f <Commit msg file>`    Specify a commit message from a file. Use with `'-u <Strategy>'`.
+`-f <Commit msg file>`    Specify a commit message from a file. Use with `-u <Strategy>`.
 
 `-t <Commit>` Hard reset the local branch to the specified commit. Multiple repo values are not supported by this feature
 
