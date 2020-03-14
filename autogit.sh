@@ -23,11 +23,11 @@ is_quiet=false
 dry_mode=false
 
 quick_usage(){
-    https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent | grep "Usage summary" |fold -s
+    curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent | grep "Usage summary" |fold -s
 }
 
 usage(){
-    https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent |  fold -s
+    curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent |  fold -s
 }
 
 # Usage: exec_or_fail command --args (required)
