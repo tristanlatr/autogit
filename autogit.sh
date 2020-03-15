@@ -62,7 +62,7 @@ with_ssh_key(){
     IFS=' '
     if [[ ! -z "${ssh_key}" ]]; then
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
-        if ! ssh-agent bash -c "ssh-add ${ssh_key} && $* "
+        if ! ssh-agent bash -c "ssh-add ${ssh_key} && $@ "
         then
             git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
             IFS=$'\n\t,'
@@ -70,7 +70,7 @@ with_ssh_key(){
         fi
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
-        if ! bash -c "$*"
+        if ! bash -c "$@"
         then
             IFS=$'\n\t,'
             return 1
