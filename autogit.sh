@@ -61,7 +61,8 @@ with_ssh_key(){
     # echo "[DEBUG] with_ssh_key param: $@"
     if [[ ! -z "${ssh_key}" ]]; then
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
-        if ! ssh-agent bash -c "ssh-add ${ssh_key} && '$@'"
+        cmd="$@"
+        if ! ssh-agent bash -c "ssh-add ${ssh_key} && $cmd"
         then
             git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
             return 1
