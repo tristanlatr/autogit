@@ -23,11 +23,11 @@ git_add_untracked=false
 is_quiet=false
 
 quick_usage(){
-    curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent | grep "Usage summary" | fold -s
+    curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent | grep "Usage summary" 
 }
 
 usage(){
-    curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent |  fold -s
+    curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent
 }
 
 # Usage: exec_or_fail command --args (required)
@@ -125,7 +125,7 @@ while getopts "${optstring}" arg; do
         s) ;;
         *)
             quick_usage
-            echo "[ERROR] You made a syntax mistake calling the script. Please see '$0 -h' for more infos." | fold -s
+            echo "[ERROR] You made a syntax mistake calling the script. Please see '$0 -h' for more infos." 
             exit 3
     esac
 done
@@ -201,7 +201,7 @@ while getopts "${optstring}" arg; do
                         branch=`git rev-parse --abbrev-ref HEAD`
                         logger $is_quiet echo "[INFO] Check repository $folder on branch ${branch}"
                     else
-                        echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo." |  fold -s
+                        echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
                         exit 4
                     fi
                 fi
@@ -245,7 +245,7 @@ while getopts "${optstring}" arg; do
                             exec_or_fail logger $is_quiet git checkout ${OPTARG}
                         fi
                     else
-                        echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." | fold -s
+                        echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." 
                         exit 6
                     fi
                 else
@@ -267,7 +267,7 @@ while getopts "${optstring}" arg; do
                 strategy=${OPTARG}
 
                 if [[ ! "${strategy}" = "merge" ]] && [[ ! "${strategy}" = "merge-overwrite" ]] && [[ ! "${strategy}" = "merge-or-branch" ]] && [[ ! "${strategy}" = "merge-or-stash" ]] && [[ ! "${strategy}" = "merge-or-fail" ]] && [[ ! "${strategy}" = "stash" ]]; then
-                    echo -e "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument.\nPlease see '$0 -h' for more infos." | fold -s
+                    echo -e "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument.\nPlease see '$0 -h' for more infos." 
                     exit 3
                 fi
                 # If there is any kind of changes in the working tree
@@ -292,11 +292,11 @@ while getopts "${optstring}" arg; do
                         if ! logger $is_quiet git stash save ${git_stash_args} "${commit_and_stash_name}"
                         then
                             echo "[ERROR] Unable to save stash, repository can be in a conflict state"
-                            echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" | fold -s
+                            echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
                             exit 7
                         else
                             if [[ -z `git stash list | grep "${commit_and_stash_date}"` ]] && [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
-                                echo "[ERROR] Looks like your stash could not be saved or you have no changes to save, to continue anyway, please use '-u merge-or-fail'" | fold -s
+                                echo "[ERROR] Looks like your stash could not be saved or you have no changes to save, to continue anyway, please use '-u merge-or-fail'" 
                                 exit 8
                             fi
                         fi
@@ -323,7 +323,7 @@ while getopts "${optstring}" arg; do
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
                         logger $is_quiet echo "[WARNING] Merge failed. Reseting to last commit."
-                        logger $is_quiet echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" | fold -s
+                        logger $is_quiet echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
                         exec_or_fail logger $is_quiet git reset --hard HEAD~1
                         logger $is_quiet echo "[INFO] Pulling changes"
                         exec_or_fail logger $is_quiet with_ssh_key "git pull" "${ssh_key}"
@@ -336,8 +336,8 @@ while getopts "${optstring}" arg; do
                         if ! logger $is_quiet with_ssh_key "git pull --quiet --no-commit" "${ssh_key}"
                         then
                             logger $is_quiet echo "[WARNING] Last commit is also in conflict with remote. Giving up."
-                            echo "[ERROR] Merge overwrite failed. Repository is in a conflict state! Trying to apply last stash and quitting" | fold -s
-                            echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" | fold -s
+                            echo "[ERROR] Merge overwrite failed. Repository is in a conflict state! Trying to apply last stash and quitting" 
+                            echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
                             exec_or_fail logger $is_quiet git stash apply --quiet stash@{0}
                             exit 2
                         fi
@@ -368,7 +368,7 @@ while getopts "${optstring}" arg; do
 
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
                         echo "[ERROR] Merge failed. Repository is in a conflict state!"
-                        echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" | fold -s
+                        echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
                         exit 2
                     
                     else
@@ -379,7 +379,7 @@ while getopts "${optstring}" arg; do
                         logger $is_quiet echo "[INFO] Use '-u merge-or-branch' to push changes to new remote branch"
                         logger $is_quiet echo "[INFO] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
                         logger $is_quiet echo "[INFO] Or you can hard reset to previous commit using '-t <Commit SHA>' option. Your local changes will be erased."
-                        echo "[ERROR] Merge failed, nothing changed." | fold -s
+                        echo "[ERROR] Merge failed, nothing changed." 
                         exit 2
                     fi
                 else
