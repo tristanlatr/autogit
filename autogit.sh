@@ -62,7 +62,7 @@ with_ssh_key(){
     IFS=' '
     if [[ ! -z "${ssh_key}" ]]; then
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
-        if ! ssh-agent bash -c "ssh-add ${ssh_key} && $@ "
+        if ! ssh-agent bash -c "ssh-add ${ssh_key} && $*"
         then
             git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
             IFS=$'\n\t,'
@@ -187,7 +187,7 @@ while getopts "${optstring}" arg; do
                 
                 if [[ -d "$folder" ]]; then
                     cd $folder
-                    exec_or_fail logger with_ssh_key "git fetch --quiet"
+                    exec_or_fail logger with_ssh_key git fetch --quiet
                     branch=`git rev-parse --abbrev-ref HEAD`
                     logger echo "[INFO] Check repository $folder on branch ${branch}"
                 else
@@ -197,8 +197,8 @@ while getopts "${optstring}" arg; do
                         cd ${folder}
                         exec_or_fail logger git init
                         exec_or_fail logger git remote add -t master origin ${git_clone_url} 
-                        exec_or_fail logger with_ssh_key "git remote update"
-                        exec_or_fail logger with_ssh_key "git pull"
+                        exec_or_fail logger with_ssh_key git remote update
+                        exec_or_fail logger with_ssh_key git pull
                         branch=`git rev-parse --abbrev-ref HEAD`
                         logger echo "[INFO] Check repository $folder on branch ${branch}"
                     else
@@ -319,7 +319,7 @@ while getopts "${optstring}" arg; do
                 fi
 
                 logger echo "[INFO] Merging"
-                if ! logger with_ssh_key "git pull"
+                if ! logger with_ssh_key git pull
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
@@ -327,14 +327,14 @@ while getopts "${optstring}" arg; do
                         logger echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
                         exec_or_fail logger git reset --hard HEAD~1
                         logger echo "[INFO] Pulling changes"
-                        exec_or_fail logger with_ssh_key "git pull"
+                        exec_or_fail logger with_ssh_key git pull
                     
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         logger echo "[WARNING] Merge failed. Reseting to last commit"
                         exec_or_fail logger git reset --hard HEAD~1
                         logger echo "[INFO] Pulling changes"
-                        if ! logger with_ssh_key "git pull --quiet --no-commit"
+                        if ! logger with_ssh_key git pull --quiet --no-commit
                         then
                             logger echo "[WARNING] Last commit is also in conflict with remote. Giving up."
                             echo "[ERROR] Merge overwrite failed. Repository is in a conflict state! Trying to apply last stash and quitting" 
