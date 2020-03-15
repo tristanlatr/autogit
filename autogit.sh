@@ -389,7 +389,7 @@ while getopts "${optstring}" arg; do
                         logger echo "[INFO] Dry mode: would have push changes"
                     else
                         logger echo "[INFO] Pushing changes"
-                        exec_or_fail logger with_ssh_key "git push -u origin ${branch}"
+                        exec_or_fail logger with_ssh_key git push -u origin ${branch}
                     fi
                 fi
 
