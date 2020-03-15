@@ -31,7 +31,7 @@ usage(){
 # Usage: with_ssh_key command --args (required)
 with_ssh_key(){
     # echo "[DEBUG] with_ssh_key params: $@"
-    # Need to reset the IFS temporarly to space 
+    # Need to reset the IFS temporarly to space hum...
     IFS=' '
     if [[ ! -z "${ssh_key}" ]] && [[ "$1" = "git" ]]; then
         echo "[DEBUG] ONLY ADDING SSH KEY TO GIT CMD : with_ssh_key params: $@"
