@@ -59,20 +59,24 @@ commit_local_changes(){
 # Usage: with_ssh_key command --args
 with_ssh_key(){
     # echo "[DEBUG] with_ssh_key param: $@"
+    IFS=' '
     if [[ ! -z "${ssh_key}" ]]; then
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
-        if ! ssh-agent bash -c "ssh-add ${ssh_key} && $*"
+        if ! ssh-agent bash -c "ssh-add ${ssh_key} && $* "
         then
             git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
+            IFS=$'\n\t,'
             return 1
         fi
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
         if ! bash -c "$*"
         then
+            IFS=$'\n\t,'
             return 1
         fi
     fi
+    IFS=$'\n\t,'
 }
 
 # Usage logger command --args (required)
