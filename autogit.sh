@@ -70,7 +70,7 @@ with_ssh_key(){
         fi
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
-        if ! bash -c "$@"
+        if ! bash -c "$*"
         then
             IFS=$'\n\t,'
             return 1
