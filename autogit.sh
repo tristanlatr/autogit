@@ -25,17 +25,66 @@ is_quiet=false
 quick_usage(){
     curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent | grep "Usage summary" 
 }
-
 usage(){
     curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent
 }
-
 # Usage: exec_or_fail command --args (required)
 exec_or_fail(){
     if ! $@
     then
         echo "[ERROR] Fatal error. Failed command: '$@'"
         exit 1
+    fi
+}
+# Usage: with_ssh_key command --args (required)
+with_ssh_key(){
+    echo "[DEBUG] with_ssh_key params: $@"
+    # Need to reset the IFS temporarly to space 
+    IFS=' '
+    echo "[DEBUG] with_ssh_key params: $*"
+    if [[ ! -z "${ssh_key}" ]]; then
+        git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
+        if ! ssh-agent bash -c "ssh-add ${ssh_key} && $*"; then
+            git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
+            IFS=$'\n\t,' ; return 1
+        fi
+        git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
+    else
+        if ! bash -c "$*"
+        then
+            IFS=$'\n\t,'
+            return 1
+        fi
+    fi
+    IFS=$'\n\t,'
+}
+# Usage logger command --args (required)
+logger() {
+    if [[ "${is_quiet}" = true ]]; then
+        stdout="/tmp/command-stdout.txt"
+        stderr='/tmp/command-stderr.txt'
+        if ! $* </dev/null >$stdout 2>$stderr; then
+            cat $stderr >&2 ; rm -f $stdout $stderr ; return 1
+        fi
+        rm -f $stdout $stderr # && echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
+    else
+        if ! $*; then
+            return 1
+        fi
+    fi
+}
+# Usage wrapcmd command --args
+wrapcmd() {
+    exec_or_fail logger with_ssh_key $*
+}
+
+# Usage : if is_changes_in_tracked_files; then ...
+is_changes_in_tracked_files(){
+    if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
+    then
+        return 0
+    else
+        return 1
     fi
 }
 
@@ -52,60 +101,6 @@ commit_local_changes(){
         fi
     elif [[ $dry_mode = true ]]; then
         echo "[INFO] Dry mode: would have commit changes: $1"
-    fi
-}
-
-# Usage: with_ssh_key command --args
-with_ssh_key(){
-    echo "[DEBUG] with_ssh_key params: $@"
-    IFS=' '
-    echo "[DEBUG] with_ssh_key params: $*"
-    if [[ ! -z "${ssh_key}" ]]; then
-        git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
-        if ! ssh-agent bash -c "ssh-add ${ssh_key} && $*"
-        then
-            git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
-            IFS=$'\n\t,'
-            return 1
-        fi
-        git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
-    else
-        if ! bash -c "$*"
-        then
-            IFS=$'\n\t,'
-            return 1
-        fi
-    fi
-    IFS=$'\n\t,'
-}
-
-# Usage logger command --args (required)
-logger() {
-    if [[ "${is_quiet}" = true ]]; then
-        stdout="/tmp/command-stdout.txt"
-        stderr='/tmp/command-stderr.txt'
-        if ! $@ </dev/null >$stdout 2>$stderr
-        then
-            cat $stderr >&2
-            rm -f $stdout $stderr
-            return 1
-        fi
-        # echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
-        rm -f $stdout $stderr
-    else
-        if ! $@
-        then
-            return 1
-        fi
-    fi
-}
-
-is_changes_in_tracked_files(){
-    if ! git diff-files --quiet -- || ! git diff-index --quiet --cached --exit-code HEAD
-    then
-        return 0
-    else
-        return 1
     fi
 }
 
@@ -182,9 +177,9 @@ while getopts "${optstring}" arg; do
                 
                 if [[ -d "$folder" ]]; then
                     cd $folder
-                    exec_or_fail logger with_ssh_key git fetch --quiet
+                    wrapcmd git fetch --quiet
                     branch=`git rev-parse --abbrev-ref HEAD`
-                    logger echo "[INFO] Check repository $folder on branch ${branch}"
+                    wrapcmd echo "[INFO] Check repository $folder on branch ${branch}"
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
                         logger echo "[INFO] Repository do no exist, initating it from ${git_clone_url}"
