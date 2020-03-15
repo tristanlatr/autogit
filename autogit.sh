@@ -1,6 +1,6 @@
 #!/bin/bash
 # Git automatic administration script
-# Edited 2020-03-14
+# Edited 2020-03-15
 
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
@@ -157,20 +157,15 @@ while getopts "${optstring}" arg; do
     case "${arg}" in
         k)
             ssh_key=${OPTARG}
-            logger echo "[INFO] SSH key: ${ssh_key}"
             ;;
         c)
             git_clone_url=${OPTARG}
-            logger echo "[INFO] Git server URL: ${git_clone_url}"
             ;;
         f)
             commit_msg_from_file=`cat "${OPTARG}"`
-            logger echo "[INFO] Commit message file: ${OPTARG}"
-
             ;;
         m)
             commit_msg_text="${OPTARG}"
-            logger echo "[INFO] Commit message: ${OPTARG}"
             ;;
         a)
             git_add_untracked=true
@@ -191,7 +186,7 @@ while getopts "${optstring}" arg; do
                     logger echo "[INFO] Check repository $folder on branch ${branch}"
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
-                        logger echo "[INFO] Repository do no exist, initating it."
+                        logger echo "[INFO] Repository do no exist, initating it from ${git_clone_url}"
                         mkdir -p ${folder}
                         cd ${folder}
                         exec_or_fail logger git init
