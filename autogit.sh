@@ -39,20 +39,19 @@ exec_or_fail(){
     fi
 }
 
-# Usage: commit_local_changes "dry_mode (required true/false)" "name (required)" "msg text (not required)" "msg text from file (not required)"
+# Usage: commit_local_changes "name (required)" "msg text (not required)" "msg text from file (not required)"
 commit_local_changes(){
-    dry_mode=$1
     if [[ $dry_mode = false ]]; then
         echo "[INFO] Committing changes"
-        if [[ "$#" -eq 2 ]] ; then
-            exec_or_fail git commit -a -m "${2}"
+        if [[ "$#" -eq 1 ]] ; then
+            exec_or_fail git commit -a -m "${1}"
+        elif [[ "$#" -eq 2 ]]; then
+            exec_or_fail git commit -a -m "${2}" -m "${1}"
         elif [[ "$#" -eq 3 ]]; then
-            exec_or_fail git commit -a -m "${3}" -m "${2}"
-        elif [[ "$#" -eq 4 ]]; then
-            exec_or_fail git commit -a -m "${3}" -m "${2}" -m "${4}"
+            exec_or_fail git commit -a -m "${2}" -m "${1}" -m "${3}"
         fi
     elif [[ $dry_mode = true ]]; then
-        echo "[INFO] Dry mode: would have commit changes: $2"
+        echo "[INFO] Dry mode: would have commit changes: $1"
     fi
 }
 
@@ -310,7 +309,7 @@ while getopts "${optstring}" arg; do
                                 logger echo "[WARNING] Your changes are not saved as stash"
                             fi
 
-                            exec_or_fail logger commit_local_changes "$dry_mode" "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                            exec_or_fail logger commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
                         fi
                     fi
 
@@ -354,7 +353,7 @@ while getopts "${optstring}" arg; do
                         else
                             logger echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
-                        exec_or_fail logger commit_local_changes "$dry_mode" "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        exec_or_fail logger commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
@@ -363,7 +362,7 @@ while getopts "${optstring}" arg; do
                         exec_or_fail logger git checkout -b ${conflit_branch}
                         logger echo "[INFO] Applying stash in order to push to new remote branch"
                         exec_or_fail logger git stash apply --quiet stash@{0}
-                        exec_or_fail logger commit_local_changes "$dry_mode" "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        exec_or_fail logger commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
                         logger echo "[INFO] You changes will be pushed to remote branch ${conflit_branch}. Please merge the branch"
                         echo "[WARNING] Repository is on a new branch"
 
