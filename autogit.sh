@@ -299,7 +299,7 @@ while getopts "${optstring}" arg; do
                 fi
 
                 echo "[INFO] Merging"
-                if ! with_ssh_key git pull
+                if ! with_ssh_key git pull 2>&1
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
@@ -343,7 +343,7 @@ while getopts "${optstring}" arg; do
                         git checkout -b ${conflit_branch}
                         echo "[INFO] Applying stash in order to push to new remote branch"
                         git stash apply --quiet stash@{0}
-                         commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
                         echo "[INFO] You changes will be pushed to remote branch ${conflit_branch}. Please merge the branch"
                         echo "[WARNING] Repository is on a new branch"
 
@@ -372,7 +372,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Dry mode: would have push changes"
                     else
                         echo "[INFO] Pushing changes"
-                         with_ssh_key git push -u origin ${branch}
+                         with_ssh_key git push -u origin ${branch} 2>&1
                     fi
                 fi
 
