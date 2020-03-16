@@ -168,7 +168,7 @@ while getopts "${optstring}" arg; do
                 if [[ -d "$folder" ]]; then
                     cd $folder
                     with_ssh_key git fetch --quiet
-                    branch=`git rev-parse --abbrev-ref HEAD || git branch --show-current`
+                    branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                     echo "[INFO] Check repository $folder on branch ${branch}"
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
@@ -179,7 +179,7 @@ while getopts "${optstring}" arg; do
                         git remote add -t master origin ${git_clone_url} 
                         with_ssh_key git remote update
                         with_ssh_key git pull
-                        branch=`git rev-parse --abbrev-ref HEAD || git branch --show-current`
+                        branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                         echo "[INFO] Check repository $folder on branch ${branch}"
                     else
                         >&2 echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
@@ -218,7 +218,7 @@ while getopts "${optstring}" arg; do
             for folder in ${repositories}; do
                 echo "[INFO] Checkout ${folder} on branch ${OPTARG}"
                 cd $folder
-                branch=`git rev-parse --abbrev-ref HEAD || git branch --show-current`
+                branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                 if [[ ! "${OPTARG}" == "${branch}" ]]; then
                     if ! is_changes_in_tracked_files; then
                         if ! git checkout -b ${OPTARG}
@@ -356,7 +356,7 @@ while getopts "${optstring}" arg; do
                 else
                     echo "[INFO] Merge success"
                 fi
-                branch=`git rev-parse --abbrev-ref HEAD || git branch --show-current`
+                branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                 if [[ "${strategy}" =~ "merge" ]] && [[ -n `git diff --stat --cached origin/${branch}` ]]; then
                     if [[ $dry_mode = true ]]; then
                         echo "[INFO] Dry mode: would have push changes"
