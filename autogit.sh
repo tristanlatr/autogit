@@ -5,23 +5,34 @@
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t,'
-
-# Script constants
+# SCRIPT CONSTANTS
+# See help for more informations
+optstring="hqnk:c:m:f:ar:b:t:u:i:s:"
+# Dry mode: If set to true: Will not commit or push changes.
+# Will still pull and merge remote changes into working copy!
+dry_mode=false
+# SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q]
+# You can set default values here
+# Repositories: Default repositorie(s). Option  -r <>
+# Exemple: repositories=("~/autogit/","~/wpscan/")
+repositories=()
+# SSH key. Option [-k <>]
+# Exemple: ssh_key="~/.ssh/github"
+ssh_key=""
+# URL of the git source. Option [-c <>]
+git_clone_url=""
+# First commit messages. Option [-m <>] 
+commit_msg_text=""
+# Will read second message from file. Option [-f <>] 
+commit_msg_from_file=""
+# Add untracked files to git: true/false. Option [-a]
+git_add_untracked=false
+# Quiet: true/false. Option [-q]
+is_quiet=false
+# SCRIPT VARIABLES
 host=`hostname`
 init_folder=`pwd`
-optstring="hqnk:c:m:f:ar:b:t:u:i:s:"
-nb_stash_to_keep=-1
-dry_mode=false
-
-# Script config
-repositories=()
-ssh_key=""
-git_clone_url=""
-commit_msg_from_file=""
-commit_msg_text=""
-git_add_untracked=false
-is_quiet=false
-
+# FUNCTIONS
 quick_usage(){
     curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent | grep "Usage summary" 
 }
@@ -33,23 +44,21 @@ with_ssh_key(){
     # echo "[DEBUG] with_ssh_key params: $@"
     # Need to reset the IFS temporarly to space hum...
     IFS=' '
-    if [[ ! -z "${ssh_key}" ]] && [[ "$1" = "git" ]]; then
-        echo "[DEBUG] ONLY ADDING SSH KEY TO GIT CMD : with_ssh_key params: $@"
+    if [[ ! -z "${ssh_key}" ]] ; then
+        echo "[DEBUG] with_ssh_key params: $*"
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} && $*"; then
             git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
-            echo "[ERROR] Fatal error. Failed command: $*"
-            IFS=$'\n\t,' ; exit 1  
+            echo "[ERROR] Fatal error. Failed command: $*" ; exit 1  
         fi
+        IFS=$'\n\t,'
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
         if ! $*; then
-            echo "[ERROR] Fatal error. Failed command: '$@'" 
-            IFS=$'\n\t,' ; exit 1
+            echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
         fi
     fi
-    IFS=$'\n\t,'
 }
 # Usage logger command --args (required)
 logger() {
@@ -57,12 +66,12 @@ logger() {
         stdout="/tmp/command-stdout.txt"
         stderr='/tmp/command-stderr.txt'
         if ! $* </dev/null >$stdout 2>$stderr; then
-            cat $stderr >&2 ; rm -f $stdout $stderr ; return 1
+            cat $stderr >&2 ; rm -f $stdout $stderr ; echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
         fi
         rm -f $stdout $stderr # && echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
     else
         if ! $*; then
-            echo "[ERROR] Fatal error. Failed command: '$@'" ; exit 1
+            echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
         fi
     fi
 }
