@@ -52,13 +52,13 @@ with_ssh_key(){
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
             git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
-            echo "[ERROR] Fatal error. Failed command: $*" ; exit 1  
+            >&2 echo "[ERROR] Fatal error. Failed command: $*" ; exit 1  
         fi
         IFS=$'\n\t,'
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
         if ! $*; then
-            echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
+            >&2 echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
         fi
     fi
 }
@@ -77,15 +77,15 @@ commit_local_changes(){
         echo "[INFO] Committing changes"
         if [[ "$#" -eq 1 ]] ; then
             if ! git commit -a -m "${1}"; then
-                echo "[ERROR] Fatal error. Failed command: git commit" ; exit 1
+                >&2 echo "[ERROR] Fatal error. Failed command: git commit" ; exit 1
             fi
         elif [[ "$#" -eq 2 ]]; then
             if ! git commit -a -m "${2}" -m "${1}"; then
-                echo "[ERROR] Fatal error. Failed command: git commit" ; exit 1
+                >&2 echo "[ERROR] Fatal error. Failed command: git commit" ; exit 1
             fi
         elif [[ "$#" -eq 3 ]]; then
             if ! git commit -a -m "${2}" -m "${1}" -m "${3}"; then
-                echo "[ERROR] Fatal error. Failed command: git commit" ; exit 1
+                >&2 echo "[ERROR] Fatal error. Failed command: git commit" ; exit 1
             fi
         fi
     elif [[ $dry_mode = true ]]; then
@@ -110,7 +110,7 @@ while getopts "${optstring}" arg; do
         s) ;;
         *)
             quick_usage
-            echo "[ERROR] You made a syntax mistake calling the script. Please see '$0 -h' for more infos." 
+            >&2 echo "[ERROR] You made a syntax mistake calling the script. Please see '$0 -h' for more infos." 
             exit 3
     esac
 done
@@ -182,7 +182,7 @@ while getopts "${optstring}" arg; do
                         branch=`git rev-parse --abbrev-ref HEAD`
                         echo "[INFO] Check repository $folder on branch ${branch}"
                     else
-                        echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
+                        >&2 echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
                         exit 4
                     fi
                 fi
@@ -193,7 +193,7 @@ while getopts "${optstring}" arg; do
 done
 OPTIND=1
 if [[ ${#repositories[@]} -eq 0 ]]; then
-    echo "[ERROR] You need to set the repository '-r <Path(s)>'."
+    >&2 echo "[ERROR] You need to set the repository '-r <Path(s)>'."
     exit 5
 fi 
 while getopts "${optstring}" arg; do
@@ -226,7 +226,7 @@ while getopts "${optstring}" arg; do
                             git checkout ${OPTARG}
                         fi
                     else
-                        echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." 
+                        >&2 echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." 
                         exit 6
                     fi
                 else
@@ -248,7 +248,7 @@ while getopts "${optstring}" arg; do
                 strategy=${OPTARG}
 
                 if [[ ! "${strategy}" = "merge" ]] && [[ ! "${strategy}" = "merge-overwrite" ]] && [[ ! "${strategy}" = "merge-or-branch" ]] && [[ ! "${strategy}" = "merge-or-stash" ]] && [[ ! "${strategy}" = "merge-or-fail" ]] && [[ ! "${strategy}" = "stash" ]]; then
-                    echo -e "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument.\nPlease see '$0 -h' for more infos." 
+                    >&2 echo -e "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument.\nPlease see '$0 -h' for more infos." 
                     exit 3
                 fi
                 # If there is any kind of changes in the working tree
@@ -272,12 +272,12 @@ while getopts "${optstring}" arg; do
 
                         if ! git stash save ${git_stash_args} "${commit_and_stash_name}"
                         then
-                            echo "[ERROR] Unable to save stash, repository can be in a conflict state"
-                            echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
+                            >&2 echo "[ERROR] Unable to save stash, repository can be in a conflict state" 
+                            >&2 echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
                             exit 7
                         else
                             if [[ -z `git stash list | grep "${commit_and_stash_date}"` ]] && [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
-                                echo "[ERROR] Looks like your stash could not be saved or you have no changes to save, to continue anyway, please use '-u merge-or-fail'" 
+                                >&2 echo "[ERROR] Looks like your stash could not be saved or you have no changes to save, to continue anyway, please use '-u merge-or-fail'" 
                                 exit 8
                             fi
                         fi
@@ -287,7 +287,7 @@ while getopts "${optstring}" arg; do
                                 echo "[INFO] Applying stash in order to merge"
                                 git stash apply --quiet stash@{0}
                             else
-                                echo "[WARNING] Your changes are not saved as stash"
+                                >&2 echo "[WARNING] Your changes are not saved as stash" 
                             fi
 
                              commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
@@ -303,7 +303,7 @@ while getopts "${optstring}" arg; do
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
-                        echo "[WARNING] Merge failed. Reseting to last commit."
+                        >&2 echo "[WARNING] Merge failed. Reseting to last commit."
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
@@ -311,14 +311,14 @@ while getopts "${optstring}" arg; do
                     
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
-                        echo "[WARNING] Merge failed. Reseting to last commit"
+                        >&2 echo "[WARNING] Merge failed. Reseting to last commit"
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
                         if ! with_ssh_key git pull --quiet --no-commit
                         then
-                            echo "[WARNING] Last commit is also in conflict with remote. Giving up."
-                            echo "[ERROR] Merge overwrite failed. Repository is in a conflict state! Trying to apply last stash and quitting" 
-                            echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
+                            >&2 echo "[WARNING] Last commit is also in conflict with remote. Giving up."
+                            >&2 echo "[ERROR] Merge overwrite failed. Repository is in a conflict state! Trying to apply last stash and quitting"
+                            >&2 echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option"
                             git stash apply --quiet stash@{0}
                             exit 2
                         fi
@@ -332,35 +332,35 @@ while getopts "${optstring}" arg; do
                                 git add ${file}
                             done
                         else
-                            echo "[WARNING] Git stash apply successful, no need to overwrite"
+                            >&2 echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
                          commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
-                        echo "[WARNING] Merge failed. Creating a new remote branch ${conflit_branch}"
+                        >&2 echo "[WARNING] Merge failed. Creating a new remote branch ${conflit_branch}"
                         git reset --hard HEAD~1
                         git checkout -b ${conflit_branch}
                         echo "[INFO] Applying stash in order to push to new remote branch"
                         git stash apply --quiet stash@{0}
                         commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
                         echo "[INFO] You changes will be pushed to remote branch ${conflit_branch}. Please merge the branch"
-                        echo "[WARNING] Repository is on a new branch"
+                        >&2 echo "[WARNING] Repository is on a new branch"
 
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
-                        echo "[ERROR] Merge failed. Repository is in a conflict state!"
-                        echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
+                        >&2 echo "[ERROR] Merge failed. Repository is in a conflict state!"
+                        >&2 echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
                         exit 2
                     
                     else
-                        echo "[WARNING] Merge failed. Reseting to last commit and re-applying stashed changes."
+                        >&2 echo "[WARNING] Merge failed. Reseting to last commit and re-applying stashed changes."
                         git reset --hard HEAD~1
                         git stash apply --quiet stash@{0}
                         echo "[INFO] Use '-u merge-overwrite' to overwrite remote content"
                         echo "[INFO] Use '-u merge-or-branch' to push changes to new remote branch"
                         echo "[INFO] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
                         echo "[INFO] Or you can hard reset to previous commit using '-t <Commit SHA>' option. Your local changes will be erased."
-                        echo "[ERROR] Merge failed, nothing changed." 
+                        >&2 echo "[ERROR] Merge failed, nothing changed." 
                         exit 2
                     fi
                 else
@@ -399,7 +399,7 @@ while getopts "${optstring}" arg; do
                             if ! git stash drop "${stash}"
                             then
                                 stash_name=`git stash list | grep "${stash}"`
-                                echo "[WARNING] A stash could not be deleted: ${stash_name}"
+                                >&2 echo "[WARNING] A stash could not be deleted: ${stash_name}"
                             fi
                         done
                     fi
