@@ -34,6 +34,8 @@ is_quiet=false
 # SCRIPT VARIABLES
 host=`hostname`
 init_folder=`pwd`
+date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
+commit_and_stash_name="[autogit] Changes on ${host} ${date_time_str}"
 # FUNCTIONS
 quick_usage(){
     curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent | grep "Usage summary" 
@@ -47,7 +49,6 @@ with_ssh_key(){
     # Need to reset the IFS temporarly to space hum...
     IFS=' '
     if [[ ! -z "${ssh_key}" ]] ; then
-        echo "[DEBUG] with_ssh_key params: $*"
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
@@ -177,8 +178,8 @@ while getopts "${optstring}" arg; do
                         cd ${folder}
                         git init
                         git remote add -t master origin ${git_clone_url} 
-                         with_ssh_key git remote update
-                         with_ssh_key git pull
+                        with_ssh_key git remote update
+                        with_ssh_key git pull
                         branch=`git rev-parse --abbrev-ref HEAD`
                         echo "[INFO] Check repository $folder on branch ${branch}"
                     else
@@ -254,50 +255,40 @@ while getopts "${optstring}" arg; do
                 # If there is any kind of changes in the working tree
                 if [[ -n `git status -s` ]]; then
                     git_stash_args=""
-                    commit_and_stash_date=`date +"%Y-%m-%dT%H-%M-%S"`
-                    commit_and_stash_name="[autogit] Changes on ${host} ${commit_and_stash_date}"
-
                     if [[ "${git_add_untracked}" = true ]]; then
                         echo "[INFO] Adding untracked files"
                         git add .
                         git_stash_args="--include-untracked"
                     fi
-
                     echo "[INFO] Locally changed files:"
                     git status -s
-
                     # If staged or unstaged changes in the tracked files in the working tree
                     if is_changes_in_tracked_files; then
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
-
                         if ! git stash save ${git_stash_args} "${commit_and_stash_name}"
                         then
                             >&2 echo "[ERROR] Unable to save stash, repository can be in a conflict state" 
                             >&2 echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
                             exit 7
                         else
-                            if [[ -z `git stash list | grep "${commit_and_stash_date}"` ]] && [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
+                            if [[ -z `git stash list | grep "${date_time_str}"` ]] && [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
                                 >&2 echo "[ERROR] Looks like your stash could not be saved or you have no changes to save, to continue anyway, please use '-u merge-or-fail'" 
                                 exit 8
                             fi
                         fi
-
                         if [[ "${strategy}" =~ "merge" ]]; then
-                            if [[ -n `git stash list | grep "${commit_and_stash_date}"` ]]; then
+                            if [[ -n `git stash list | grep "${date_time_str}"` ]]; then
                                 echo "[INFO] Applying stash in order to merge"
                                 git stash apply --quiet stash@{0}
                             else
                                 >&2 echo "[WARNING] Your changes are not saved as stash" 
                             fi
-
                              commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
                         fi
                     fi
-
                 else
                     echo "[INFO] No local changes"
                 fi
-
                 echo "[INFO] Merging"
                 if ! with_ssh_key git pull
                 then
