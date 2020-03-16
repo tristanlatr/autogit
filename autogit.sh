@@ -43,6 +43,11 @@ quick_usage(){
 usage(){
     curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent
 }
+nofail(){
+    if ! $*; then
+        >&2 echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
+    fi
+}
 # Usage: with_ssh_key command --args (required)
 with_ssh_key(){
     # echo "[DEBUG] with_ssh_key params: $@"
@@ -58,9 +63,7 @@ with_ssh_key(){
         IFS=$'\n\t,'
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
-        if ! $*; then
-            >&2 echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
-        fi
+        nofail $*
     fi
 }
 # Usage : if is_changes_in_tracked_files; then ...
@@ -72,25 +75,21 @@ is_changes_in_tracked_files(){
         return 1
     fi
 }
-# Usage: commit_local_changes "name (required)" "msg text (not required)" "msg text from file (not required)"
+# Usage: commit_local_changes
 commit_local_changes(){
     if [[ $dry_mode = false ]]; then
         echo "[INFO] Committing changes"
-        if [[ "$#" -eq 1 ]] ; then
-            if ! git commit -a -m "${1}"; then
-                >&2 echo "[ERROR] Fatal error. Failed command: git commit" ; exit 1
-            fi
-        elif [[ "$#" -eq 2 ]]; then
-            if ! git commit -a -m "${2}" -m "${1}"; then
-                >&2 echo "[ERROR] Fatal error. Failed command: git commit" ; exit 1
-            fi
-        elif [[ "$#" -eq 3 ]]; then
-            if ! git commit -a -m "${2}" -m "${1}" -m "${3}"; then
-                >&2 echo "[ERROR] Fatal error. Failed command: git commit" ; exit 1
-            fi
+        if [[ ! -z "$commit_msg_text" ]] && [[ ! -z "$commit_msg_from_file" ]]; then
+            nofail git commit -a -m "${commit_msg_text}" -m "${commit_msg_from_file}" -m "${commit_and_stash_name}"
+        elif [[ ! -z "$commit_msg_text" ]]; then
+            nofail git commit -a -m "${commit_msg_text}" -m "${commit_and_stash_name}"
+        elif [[ ! -z "$commit_msg_from_file" ]]; then
+            nofail git commit -a -m "${commit_msg_from_file}" -m "${commit_and_stash_name}"
+        else
+            nofail git commit -a -m "${commit_and_stash_name}"
         fi
     elif [[ $dry_mode = true ]]; then
-        echo "[INFO] Dry mode: would have commit changes: $1"
+        echo "[INFO] Dry mode: would have commit changes: ${commit_and_stash_name}"
     fi
 }
 # Begin of ther
@@ -283,7 +282,7 @@ while getopts "${optstring}" arg; do
                             else
                                 >&2 echo "[WARNING] Your changes are not saved as stash" 
                             fi
-                             commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                            commit_local_changes
                         fi
                     fi
                 else
@@ -325,7 +324,7 @@ while getopts "${optstring}" arg; do
                         else
                             >&2 echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
-                         commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        commit_local_changes
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
@@ -334,7 +333,7 @@ while getopts "${optstring}" arg; do
                         git checkout -b ${conflit_branch}
                         echo "[INFO] Applying stash in order to push to new remote branch"
                         git stash apply --quiet stash@{0}
-                        commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
+                        commit_local_changes
                         echo "[INFO] You changes will be pushed to remote branch ${conflit_branch}. Please merge the branch"
                         >&2 echo "[WARNING] Repository is on a new branch"
 
