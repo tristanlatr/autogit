@@ -50,7 +50,7 @@ with_ssh_key(){
         echo "[DEBUG] with_ssh_key params: $*"
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
         IFS=' '
-        if ! ssh-agent bash -c "ssh-add ${ssh_key} && $*"; then
+        if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>/dev/null && $*"; then
             git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
             echo "[ERROR] Fatal error. Failed command: $*" ; exit 1  
         fi
