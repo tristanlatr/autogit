@@ -2,6 +2,8 @@
 # Git automatic administration script
 # Edited 2020-03-15
 
+# Saves stdout, Restore stdout: `exec 1>&6 6>&- `
+exec 6>&1 
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t,'
@@ -50,30 +52,32 @@ with_ssh_key(){
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} && $*"; then
             git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
-            echo "[ERROR] Fatal error. Failed command: $*" ; exit 1  
+            return 1
+            #echo "[ERROR] Fatal error. Failed command: $*" ; exit 1  
         fi
         IFS=$'\n\t,'
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
         if ! $*; then
-            echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
+            return 1
+            #echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
         fi
     fi
 }
 # Usage logger command --args (required)
 logger() {
-    if [[ "${is_quiet}" = true ]]; then
-        stdout="/tmp/command-stdout.txt"
-        stderr='/tmp/command-stderr.txt'
-        if ! $* </dev/null >$stdout 2>$stderr; then
-            cat $stderr >&2 ; rm -f $stdout $stderr ; echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
-        fi
-        rm -f $stdout $stderr # && echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
-    else
-        if ! $*; then
-            echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
-        fi
+    # if [[ "${is_quiet}" = true ]]; then
+    #     stdout="/tmp/command-stdout.txt"
+    #     stderr='/tmp/command-stderr.txt'
+    #     if ! $* </dev/null >$stdout 2>$stderr; then
+    #         cat $stderr >&2 ; rm -f $stdout $stderr ; echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
+    #     fi
+    #     rm -f $stdout $stderr # && echo -e "[DEBUG] Command: $@ \n\tOutput : `cat $stdout`"
+    # else
+    if ! $*; then
+        echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
     fi
+    # fi
 }
 
 # Usage : if is_changes_in_tracked_files; then ...
@@ -89,7 +93,7 @@ is_changes_in_tracked_files(){
 # Usage: commit_local_changes "name (required)" "msg text (not required)" "msg text from file (not required)"
 commit_local_changes(){
     if [[ $dry_mode = false ]]; then
-        logger echo "[INFO] Committing changes"
+        echo "[INFO] Committing changes"
         if [[ "$#" -eq 1 ]] ; then
             git commit -a -m "${1}"
         elif [[ "$#" -eq 2 ]]; then
@@ -98,7 +102,7 @@ commit_local_changes(){
             git commit -a -m "${2}" -m "${1}" -m "${3}"
         fi
     elif [[ $dry_mode = true ]]; then
-        logger echo "[INFO] Dry mode: would have commit changes: $1"
+        echo "[INFO] Dry mode: would have commit changes: $1"
     fi
 }
 # Begin of ther
@@ -132,12 +136,13 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
-
-logger echo "          ___  __   __    ___ ";
-logger echo " /\  |  |  |  /  \ / _\` |  |  ";
-logger echo "/~~\ \__/  |  \__/ \__> |  |  ";
-logger echo "                              ";
-
+if [[ "${is_quiet}" = true ]]; then
+    exec > /dev/null
+fi
+echo "          ___  __   __    ___ "
+echo " /\  |  |  |  /  \ / _\` |  |  "
+echo "/~~\ \__/  |  \__/ \__> |  |  "
+echo "                              "
 while getopts "${optstring}" arg; do
     case "${arg}" in
         h) #Print help
@@ -177,10 +182,10 @@ while getopts "${optstring}" arg; do
                     cd $folder
                     logger with_ssh_key git fetch --quiet
                     branch=`git rev-parse --abbrev-ref HEAD`
-                    logger echo "[INFO] Check repository $folder on branch ${branch}"
+                    echo "[INFO] Check repository $folder on branch ${branch}"
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
-                        logger echo "[INFO] Repository do no exist, initating it from ${git_clone_url}"
+                        echo "[INFO] Repository do no exist, initating it from ${git_clone_url}"
                         logger mkdir -p ${folder}
                         cd ${folder}
                         logger git init
@@ -188,7 +193,7 @@ while getopts "${optstring}" arg; do
                         logger with_ssh_key git remote update
                         logger with_ssh_key git pull
                         branch=`git rev-parse --abbrev-ref HEAD`
-                        logger echo "[INFO] Check repository $folder on branch ${branch}"
+                        echo "[INFO] Check repository $folder on branch ${branch}"
                     else
                         echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
                         exit 4
@@ -208,13 +213,13 @@ while getopts "${optstring}" arg; do
     case "${arg}" in
         t) #Reseting to previous commit
             for folder in ${repositories}; do
-                logger echo "[INFO] Reseting ${folder} to ${OPTARG} commit"
+                echo "[INFO] Reseting ${folder} to ${OPTARG} commit"
                 cd $folder
                 git reset --hard ${OPTARG}
                 cd "${init_folder}"
                 break
             done
-            logger echo "[INFO] Reset done"
+            echo "[INFO] Reset done"
             exit
             ;;
     esac
@@ -224,12 +229,12 @@ while getopts "${optstring}" arg; do
     case "${arg}" in
         b) #Checkout
             for folder in ${repositories}; do
-                logger echo "[INFO] Checkout ${folder} on branch ${OPTARG}"
+                echo "[INFO] Checkout ${folder} on branch ${OPTARG}"
                 cd $folder
                 branch=`git rev-parse --abbrev-ref HEAD`
                 if [[ ! "${OPTARG}" == "${branch}" ]]; then
                     if ! is_changes_in_tracked_files; then
-                        if ! logger git checkout -b ${OPTARG}
+                        if ! git checkout -b ${OPTARG}
                         then
                             logger git checkout ${OPTARG}
                         fi
@@ -238,7 +243,7 @@ while getopts "${optstring}" arg; do
                         exit 6
                     fi
                 else
-                    logger echo "[INFO] Already on branch ${OPTARG}"
+                    echo "[INFO] Already on branch ${OPTARG}"
                 fi
                 cd "${init_folder}"
             done
@@ -252,7 +257,7 @@ while getopts "${optstring}" arg; do
             for folder in ${repositories}; do
                 
                 cd $folder
-                logger echo "[INFO] Updating ${folder}"
+                echo "[INFO] Updating ${folder}"
                 strategy=${OPTARG}
 
                 if [[ ! "${strategy}" = "merge" ]] && [[ ! "${strategy}" = "merge-overwrite" ]] && [[ ! "${strategy}" = "merge-or-branch" ]] && [[ ! "${strategy}" = "merge-or-stash" ]] && [[ ! "${strategy}" = "merge-or-fail" ]] && [[ ! "${strategy}" = "stash" ]]; then
@@ -266,19 +271,19 @@ while getopts "${optstring}" arg; do
                     commit_and_stash_name="[autogit] Changes on ${host} ${commit_and_stash_date}"
 
                     if [[ "${git_add_untracked}" = true ]]; then
-                        logger echo "[INFO] Adding untracked files"
+                        echo "[INFO] Adding untracked files"
                         logger git add .
                         git_stash_args="--include-untracked"
                     fi
 
-                    logger echo "[INFO] Locally changed files:"
+                    echo "[INFO] Locally changed files:"
                     logger git status -s
 
                     # If staged or unstaged changes in the tracked files in the working tree
                     if is_changes_in_tracked_files; then
-                        logger echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
+                        echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
 
-                        if ! logger git stash save ${git_stash_args} "${commit_and_stash_name}"
+                        if ! git stash save ${git_stash_args} "${commit_and_stash_name}"
                         then
                             echo "[ERROR] Unable to save stash, repository can be in a conflict state"
                             echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
@@ -292,10 +297,10 @@ while getopts "${optstring}" arg; do
 
                         if [[ "${strategy}" =~ "merge" ]]; then
                             if [[ -n `git stash list | grep "${commit_and_stash_date}"` ]]; then
-                                logger echo "[INFO] Applying stash in order to merge"
+                                echo "[INFO] Applying stash in order to merge"
                                 logger git stash apply --quiet stash@{0}
                             else
-                                logger echo "[WARNING] Your changes are not saved as stash"
+                                echo "[WARNING] Your changes are not saved as stash"
                             fi
 
                             logger commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
@@ -303,56 +308,56 @@ while getopts "${optstring}" arg; do
                     fi
 
                 else
-                    logger echo "[INFO] No local changes"
+                    echo "[INFO] No local changes"
                 fi
 
-                logger echo "[INFO] Merging"
-                if ! logger with_ssh_key git pull
+                echo "[INFO] Merging"
+                if ! with_ssh_key git pull
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
-                        logger echo "[WARNING] Merge failed. Reseting to last commit."
-                        logger echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
+                        echo "[WARNING] Merge failed. Reseting to last commit."
+                        echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
                         logger git reset --hard HEAD~1
-                        logger echo "[INFO] Pulling changes"
+                        echo "[INFO] Pulling changes"
                         logger with_ssh_key git pull
                     
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
-                        logger echo "[WARNING] Merge failed. Reseting to last commit"
+                        echo "[WARNING] Merge failed. Reseting to last commit"
                         logger git reset --hard HEAD~1
-                        logger echo "[INFO] Pulling changes"
-                        if ! logger with_ssh_key git pull --quiet --no-commit
+                        echo "[INFO] Pulling changes"
+                        if ! with_ssh_key git pull --quiet --no-commit
                         then
-                            logger echo "[WARNING] Last commit is also in conflict with remote. Giving up."
+                            echo "[WARNING] Last commit is also in conflict with remote. Giving up."
                             echo "[ERROR] Merge overwrite failed. Repository is in a conflict state! Trying to apply last stash and quitting" 
                             echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
                             logger git stash apply --quiet stash@{0}
                             exit 2
                         fi
-                        logger echo "[INFO] Applying last stash in order to merge"
-                        if ! logger git stash apply --quiet stash@{0}
+                        echo "[INFO] Applying last stash in order to merge"
+                        if ! git stash apply --quiet stash@{0}
                         then
-                            logger echo "[INFO] Overwriting conflicted files with local changes"
+                            echo "[INFO] Overwriting conflicted files with local changes"
                             # Iterate list of conflicted files and choose stashed version
                             for file in `git diff --name-only --diff-filter=U`; do
                                 logger git checkout --theirs -- ${file}
                                 logger git add ${file}
                             done
                         else
-                            logger echo "[WARNING] Git stash apply successful, no need to overwrite"
+                            echo "[WARNING] Git stash apply successful, no need to overwrite"
                         fi
                         logger commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
 
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
-                        logger echo "[WARNING] Merge failed. Creating a new remote branch ${conflit_branch}"
+                        echo "[WARNING] Merge failed. Creating a new remote branch ${conflit_branch}"
                         logger git reset --hard HEAD~1
                         logger git checkout -b ${conflit_branch}
-                        logger echo "[INFO] Applying stash in order to push to new remote branch"
+                        echo "[INFO] Applying stash in order to push to new remote branch"
                         logger git stash apply --quiet stash@{0}
                         logger commit_local_changes "${commit_and_stash_name}" "${commit_msg_text}" "${commit_msg_from_file}"
-                        logger echo "[INFO] You changes will be pushed to remote branch ${conflit_branch}. Please merge the branch"
+                        echo "[INFO] You changes will be pushed to remote branch ${conflit_branch}. Please merge the branch"
                         echo "[WARNING] Repository is on a new branch"
 
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
@@ -361,25 +366,25 @@ while getopts "${optstring}" arg; do
                         exit 2
                     
                     else
-                        logger echo "[WARNING] Merge failed. Reseting to last commit and re-applying stashed changes."
+                        echo "[WARNING] Merge failed. Reseting to last commit and re-applying stashed changes."
                         logger git reset --hard HEAD~1
                         logger git stash apply --quiet stash@{0}
-                        logger echo "[INFO] Use '-u merge-overwrite' to overwrite remote content"
-                        logger echo "[INFO] Use '-u merge-or-branch' to push changes to new remote branch"
-                        logger echo "[INFO] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
-                        logger echo "[INFO] Or you can hard reset to previous commit using '-t <Commit SHA>' option. Your local changes will be erased."
+                        echo "[INFO] Use '-u merge-overwrite' to overwrite remote content"
+                        echo "[INFO] Use '-u merge-or-branch' to push changes to new remote branch"
+                        echo "[INFO] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
+                        echo "[INFO] Or you can hard reset to previous commit using '-t <Commit SHA>' option. Your local changes will be erased."
                         echo "[ERROR] Merge failed, nothing changed." 
                         exit 2
                     fi
                 else
-                    logger echo "[INFO] Merge success"
+                    echo "[INFO] Merge success"
                 fi
                 branch=`git rev-parse --abbrev-ref HEAD`
                 if [[ "${strategy}" =~ "merge" ]] && [[ -n `git diff --stat --cached origin/${branch}` ]]; then
                     if [[ $dry_mode = true ]]; then
-                        logger echo "[INFO] Dry mode: would have push changes"
+                        echo "[INFO] Dry mode: would have push changes"
                     else
-                        logger echo "[INFO] Pushing changes"
+                        echo "[INFO] Pushing changes"
                         logger with_ssh_key git push -u origin ${branch}
                     fi
                 fi
@@ -401,13 +406,13 @@ while getopts "${optstring}" arg; do
                     stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                     if [[ -n "${stashes}" ]]; then
                         oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
-                        logger echo "[INFO] Cleaning stashes $folder"
+                        echo "[INFO] Cleaning stashes $folder"
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
-                            if ! logger git stash drop "${stash}"
+                            if ! git stash drop "${stash}"
                             then
                                 stash_name=`git stash list | grep "${stash}"`
-                                logger echo "[WARNING] A stash could not be deleted: ${stash_name}"
+                                echo "[WARNING] A stash could not be deleted: ${stash_name}"
                             fi
                         done
                     fi
@@ -436,4 +441,4 @@ while getopts "${optstring}" arg; do
     esac
 done
 shift "$((OPTIND-1))"
-logger echo "[INFO] Success"
+echo "[INFO] Success"
