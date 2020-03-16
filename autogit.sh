@@ -372,7 +372,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Dry mode: would have push changes"
                     else
                         echo "[INFO] Pushing changes"
-                         with_ssh_key git push -u origin ${branch} 2>&1
+                        with_ssh_key git push -u origin ${branch} 2>&1
                     fi
                 fi
 
