@@ -299,7 +299,7 @@ while getopts "${optstring}" arg; do
                 fi
 
                 echo "[INFO] Merging"
-                if ! with_ssh_key git pull 2>&1
+                if ! with_ssh_key git pull
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
