@@ -8,8 +8,6 @@ exec 6>&1
 set -euo pipefail
 IFS=$'\n\t,'
 # SCRIPT CONSTANTS
-# See help '-h' for more informations
-optstring="hqnk:c:m:f:ar:b:t:u:i:s:"
 # Dry mode: If set to true equivalent to (repository) read-only: no commit or push changes.
 # Will still pull and merge remote changes into working copy!
 dry_mode=false
@@ -32,6 +30,8 @@ git_add_untracked=false
 # Quiet: true/false. Option [-q]
 is_quiet=false
 # SCRIPT VARIABLES
+# See help '-h' for more informations
+optstring="hqnk:c:m:f:ar:b:t:u:i:s:"
 host=`hostname`
 init_folder=`pwd`
 date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
@@ -44,8 +44,8 @@ usage(){
     curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent
 }
 nofail(){
-    if ! $*; then
-        >&2 echo "[ERROR] Fatal error. Failed command: $*" ; exit 1
+    if ! $@; then
+        >&2 echo "[ERROR] Fatal error. Failed command: $@" ; exit 1
     fi
 }
 # Usage: with_ssh_key command --args (required)
@@ -63,7 +63,7 @@ with_ssh_key(){
         IFS=$'\n\t,'
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
-        nofail $*
+        nofail $@
     fi
 }
 # Usage : if is_changes_in_tracked_files; then ...
@@ -79,15 +79,18 @@ is_changes_in_tracked_files(){
 commit_local_changes(){
     if [[ $dry_mode = false ]]; then
         echo "[INFO] Committing changes"
-        if [[ ! -z "$commit_msg_text" ]] && [[ ! -z "$commit_msg_from_file" ]]; then
-            nofail git commit -a -m "${commit_msg_text}" -m "${commit_msg_from_file}" -m "${commit_and_stash_name}"
-        elif [[ ! -z "$commit_msg_text" ]]; then
-            nofail git commit -a -m "${commit_msg_text}" -m "${commit_and_stash_name}"
-        elif [[ ! -z "$commit_msg_from_file" ]]; then
-            nofail git commit -a -m "${commit_msg_from_file}" -m "${commit_and_stash_name}"
-        else
-            nofail git commit -a -m "${commit_and_stash_name}"
-        fi
+        git add -u
+        echo "${commit_msg_text}" "${commit_msg_from_file}" "${commit_and_stash_name}" > /tmp/commit-msg.txt
+        nofail git commit -F /tmp/commit-msg.txt
+        # if [[ ! -z "$commit_msg_text" ]] && [[ ! -z "$commit_msg_from_file" ]]; then
+        #     nofail git commit -m "\"${commit_msg_text}\"" -m "\"${commit_msg_from_file}\"" -m "\"${commit_and_stash_name}\""
+        # elif [[ ! -z "$commit_msg_text" ]]; then
+        #     nofail git commit -m "\"${commit_msg_text}\"" -m "\"${commit_and_stash_name}\""
+        # elif [[ ! -z "$commit_msg_from_file" ]]; then
+        #     nofail git commit -m "\"${commit_msg_from_file}\"" -m "\"${commit_and_stash_name}\""
+        # else
+        #     nofail git commit -m "\"${commit_and_stash_name}\""
+        # fi
     elif [[ $dry_mode = true ]]; then
         echo "[INFO] Dry mode: would have commit changes: ${commit_and_stash_name}"
     fi
@@ -167,12 +170,15 @@ while getopts "${optstring}" arg; do
                 
                 if [[ -d "$folder" ]]; then
                     cd $folder
+                    if [[ ! -d .git ]]; then
+                        >&2 echo "[ERROR] Repository folder must contain a valid .git directory." ; exit 4
+                    fi
                     with_ssh_key git fetch --quiet
                     branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                     echo "[INFO] Check repository $folder on branch ${branch}"
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
-                        echo "[INFO] Repository do no exist, initating it from ${git_clone_url}"
+                        echo "[INFO] Local repository do no exist, initating it from ${git_clone_url}"
                         mkdir -p ${folder}
                         cd ${folder}
                         git init
@@ -289,7 +295,8 @@ while getopts "${optstring}" arg; do
                     echo "[INFO] No local changes"
                 fi
                 echo "[INFO] Merging"
-                if ! with_ssh_key git pull
+                branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
+                if ! with_ssh_key git pull origin ${branch}
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
