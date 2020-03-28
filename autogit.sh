@@ -7,11 +7,7 @@ exec 6>&1
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t,'
-# SCRIPT CONSTANTS
-# Dry mode: If set to true equivalent to (repository) read-only: no commit or push changes.
-# Will still pull and merge remote changes into working copy!
-dry_mode=false
-# SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q]
+# SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q] [-o]
 # You can set default values here
 # Repositories: Default repositorie(s). Option  -r <>
 # Exemple: repositories=("~/autogit/","~/wpscan/")
@@ -29,9 +25,12 @@ commit_msg_from_file=""
 git_add_untracked=false
 # Quiet: true/false. Option [-q]
 is_quiet=false
+# Read only: If set to true equivalent to (repository) read-only: no commit or push changes.
+# Will still pull and merge remote changes into working copy!
+read_only=false
 # SCRIPT VARIABLES
 # See help '-h' for more informations
-optstring="hqnk:c:m:f:ar:b:t:u:i:s:"
+optstring="hqnok:c:m:f:ar:b:t:u:i:s:"
 host=`hostname`
 init_folder=`pwd`
 date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
@@ -77,25 +76,19 @@ is_changes_in_tracked_files(){
 }
 # Usage: commit_local_changes
 commit_local_changes(){
-    if [[ $dry_mode = false ]]; then
+    if [[ $read_only = false ]]; then
         echo "[INFO] Committing changes"
         git add -u
         echo "${commit_msg_text}" "${commit_msg_from_file}" "${commit_and_stash_name}" > /tmp/commit-msg.txt
         nofail git commit -F /tmp/commit-msg.txt
-        # if [[ ! -z "$commit_msg_text" ]] && [[ ! -z "$commit_msg_from_file" ]]; then
-        #     nofail git commit -m "\"${commit_msg_text}\"" -m "\"${commit_msg_from_file}\"" -m "\"${commit_and_stash_name}\""
-        # elif [[ ! -z "$commit_msg_text" ]]; then
-        #     nofail git commit -m "\"${commit_msg_text}\"" -m "\"${commit_and_stash_name}\""
-        # elif [[ ! -z "$commit_msg_from_file" ]]; then
-        #     nofail git commit -m "\"${commit_msg_from_file}\"" -m "\"${commit_and_stash_name}\""
-        # else
-        #     nofail git commit -m "\"${commit_and_stash_name}\""
-        # fi
-    elif [[ $dry_mode = true ]]; then
-        echo "[INFO] Dry mode: would have commit changes: ${commit_and_stash_name}"
+    elif [[ $read_only = true ]]; then
+        echo "[INFO] Read only: would have commit changes: ${commit_and_stash_name}"
     fi
 }
-# Begin of ther
+
+# Begin of the main program
+
+# Syntax check
 while getopts "${optstring}" arg; do
     case "${arg}" in
         h) ;;
@@ -111,6 +104,7 @@ while getopts "${optstring}" arg; do
         u) ;;
         i) ;;
         s) ;;
+        o) ;;
         *)
             quick_usage
             >&2 echo "[ERROR] You made a syntax mistake calling the script. Please see '$0 -h' for more infos." 
@@ -118,6 +112,8 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
+
+# Setting verbosity
 while getopts "${optstring}" arg; do
     case "${arg}" in
         q)
@@ -129,10 +125,14 @@ OPTIND=1
 if [[ "${is_quiet}" = true ]]; then
     exec > /dev/null
 fi
+
+# Banner
 echo "          ___  __   __    ___ "
 echo " /\  |  |  |  /  \ / _\` |  |  "
 echo "/~~\ \__/  |  \__/ \__> |  |  "
 echo "                              "
+
+# Print help and exit if -h
 while getopts "${optstring}" arg; do
     case "${arg}" in
         h) #Print help
@@ -142,6 +142,7 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
+# Parse script configuration and init values
 while getopts "${optstring}" arg; do
     case "${arg}" in
         k)
@@ -159,9 +160,13 @@ while getopts "${optstring}" arg; do
         a)
             git_add_untracked=true
             ;;
+        o)
+            read_only=true
+            ;;
     esac
 done
 OPTIND=1
+# Parse repositories and check them
 while getopts "${optstring}" arg; do
     case "${arg}" in
         r)            
@@ -179,12 +184,13 @@ while getopts "${optstring}" arg; do
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
                         echo "[INFO] Local repository do no exist, initating it from ${git_clone_url}"
-                        mkdir -p ${folder}
-                        cd ${folder}
-                        git init
-                        git remote add -t master origin ${git_clone_url} 
-                        with_ssh_key git remote update
-                        with_ssh_key git pull
+                        cd "${folder}/../"
+                        with_ssh_key git clone ${git_clone_url}
+                        cd "${init_folder}" && cd "${folder}"
+                        # git init
+                        # git remote add -t master origin ${git_clone_url} 
+                        # with_ssh_key git remote update
+                        # with_ssh_key git pull
                         branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                         echo "[INFO] Check repository $folder on branch ${branch}"
                     else
@@ -198,10 +204,12 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
+# No repository selected failure
 if [[ ${#repositories[@]} -eq 0 ]]; then
     >&2 echo "[ERROR] You need to set the repository '-r <Path(s)>'."
     exit 5
 fi 
+# Hard reset
 while getopts "${optstring}" arg; do
     case "${arg}" in
         t) #Reseting to previous commit
@@ -218,6 +226,7 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
+# Checkout
 while getopts "${optstring}" arg; do
     case "${arg}" in
         b) #Checkout
@@ -244,6 +253,7 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
+# Update with s
 while getopts "${optstring}" arg; do
     case "${arg}" in
         u) #Update
@@ -304,7 +314,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
-                         with_ssh_key git pull
+                        with_ssh_key git pull
                     
                     # Force overwrite
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
@@ -365,8 +375,8 @@ while getopts "${optstring}" arg; do
                 fi
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                 if [[ "${strategy}" =~ "merge" ]] && [[ -n `git diff --stat --cached origin/${branch}` ]]; then
-                    if [[ $dry_mode = true ]]; then
-                        echo "[INFO] Dry mode: would have push changes"
+                    if [[ $read_only = true ]]; then
+                        echo "[INFO] Read only: would have push changes"
                     else
                         echo "[INFO] Pushing changes"
                         with_ssh_key git push -u origin ${branch} 2>&1
@@ -379,6 +389,7 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
+# Clean stashes
 while getopts "${optstring}" arg; do
     case "${arg}" in
         s)
@@ -406,6 +417,7 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1     
+# Show informations
 while getopts "${optstring}" arg; do
     case "${arg}" in
         i)

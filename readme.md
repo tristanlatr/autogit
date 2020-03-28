@@ -20,7 +20,7 @@ Options:
 
 `-b <Branch>` Switch to the specified branch or tag. Exit with code `6` if changed files in working tree, please merge changes first.
 
-`-u <Strategy>`   Update the current branch from and to upstream, can adopt 6 strategies. This feature supports multiple repo values !
+`-u <Strategy>`   Update the current branch from and to upstream, can adopt 6 strategies. This feature supports multiple repo values.
 
 - `merge` -> Default merge. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, reset pull and re-apply saved changes (leaving the repo in the same state as before calling the script). Exit with code `2` if merge failed. Require a write access to git server.
 
@@ -34,7 +34,9 @@ Options:
 
 - `stash` -> Always update from remote. Stash the changes and pull. Do not require a write acces to git server.
 
-`-a`  Add untracked files to git. Use with precaution. Use with `-u <Strategy>`.
+`-o`    Read-only mode. Do not commit or push any changes. Will still pull and merge remote changes into working copy. Use with `-u <Strategy>`.
+
+`-a`  Add all untracked files to git, caution. Use with `-u <Strategy>`.
 
 `-m <Commit msg text>`    The text will be used as the fist line of the commit message, then the generated name with timestamp and then the file content. This can be used with `-f <Commit msg file>`. Use with `-u <Strategy>`.
 
