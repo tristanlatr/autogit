@@ -44,7 +44,11 @@ usage(){
 }
 nofail(){
     if ! $@; then
-        >&2 echo "[ERROR] Fatal error. Failed command: $@" ; exit 1
+        >&2 echo "[WARNING] Retrying in 3 seconds. Failed command: $@"
+        sleep 3
+        if ! $@; then
+            >&2 echo "[ERROR] Fatal error. Failed command: $@" ; exit 1
+        fi
     fi
 }
 # Usage: with_ssh_key command --args (required)
@@ -184,7 +188,8 @@ while getopts "${optstring}" arg; do
                 else
                     if [[ ! -z "${git_clone_url}" ]]; then
                         echo "[INFO] Local repository do no exist, initating it from ${git_clone_url}"
-                        cd "${folder}/../"
+                        cd "${init_folder}"
+                        cd "$(dirname ${folder})"
                         with_ssh_key git clone ${git_clone_url}
                         cd "${init_folder}" && cd "${folder}"
                         # git init
