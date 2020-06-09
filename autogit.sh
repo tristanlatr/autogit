@@ -1,7 +1,13 @@
 #!/bin/bash
 # Git automatic administration script
-# Edited 2020-03-15
 
+# Install directory
+# Resolve current directory path. Code from https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself/246128#246128
+# Resolve $SOURCE until the file is no longer a symlink
+# If $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"; SOURCE="$(readlink "$SOURCE")"; [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"; done
+DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
 # Saves stdout, Restore stdout: `exec 1>&6 6>&- `
 exec 6>&1 
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
@@ -37,10 +43,22 @@ date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
 commit_and_stash_name="[autogit] Changes on ${host} ${date_time_str}"
 # FUNCTIONS
 quick_usage(){
-    curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent | grep "Usage summary" 
+    if ! cat $DIR/readme.md | grep "Usage summary"; then
+        echo "Getting docs from the internet..."
+        cd $DIR
+        wget https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md
+        cd $init_folder
+        quick_usage
+    fi
 }
 usage(){
-    curl https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md --silent
+    if ! cat $DIR/readme.md; then
+        echo "Getting docs from the internet..."
+        cd $DIR
+        wget https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md
+        cd $init_folder
+        usage
+    fi
 }
 nofail(){
     if ! $@; then
