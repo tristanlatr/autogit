@@ -42,23 +42,21 @@ init_folder=`pwd`
 date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
 commit_and_stash_name="[autogit] Changes on ${host} ${date_time_str}"
 # FUNCTIONS
-quick_usage(){
-    if ! cat $DIR/readme.md | grep "Usage summary"; then
-        echo "Getting docs from the internet..."
+download_docs_if_not_found(){
+    if ! [[ -e "$DIR/readme.md" ]]; then
         cd $DIR
-        wget https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md
+        echo "Downloading docs from the internet..."
+        wget --quiet https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md
         cd $init_folder
-        quick_usage
     fi
 }
+quick_usage(){
+    download_docs_if_not_found
+    cat "$DIR/readme.md" | grep "Usage summary"
+}
 usage(){
-    if ! cat $DIR/readme.md; then
-        echo "Getting docs from the internet..."
-        cd $DIR
-        wget https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md
-        cd $init_folder
-        usage
-    fi
+    download_docs_if_not_found
+    cat "$DIR/readme.md"
 }
 nofail(){
     if ! $@; then
