@@ -34,9 +34,12 @@ is_quiet=false
 # Read only: If set to true equivalent to (repository) read-only: no commit or push changes.
 # Will still pull and merge remote changes into working copy!
 read_only=false
+# Git remote
+git_remote=origin
+
 # SCRIPT VARIABLES
 # See help '-h' for more informations
-optstring="hqnok:c:m:f:ar:b:t:u:i:s:"
+optstring="hqnok:x:c:m:f:ar:b:t:u:i:s:"
 host=`hostname`
 init_folder=`pwd`
 date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
@@ -103,7 +106,7 @@ commit_local_changes(){
     if [[ $read_only = false ]]; then
         echo "[INFO] Committing changes"
         git add -u
-        echo "${commit_msg_text}" "${commit_msg_from_file}" "${commit_and_stash_name}" > /tmp/commit-msg.txt
+        echo -e "${commit_msg_text}\n" "${commit_msg_from_file}\n" "${commit_and_stash_name}" > /tmp/commit-msg.txt
         nofail git commit -F /tmp/commit-msg.txt
     elif [[ $read_only = true ]]; then
         echo "[INFO] Read only: would have commit changes: ${commit_and_stash_name}"
@@ -118,6 +121,7 @@ while getopts "${optstring}" arg; do
         h) ;;
         q) ;;
         k) ;;
+        x) ;;
         c) ;;
         m) ;;
         f) ;;
@@ -187,6 +191,9 @@ while getopts "${optstring}" arg; do
         o)
             read_only=true
             ;;
+        x)
+            git_remote="${OPTARG}"
+            ;;
     esac
 done
 OPTIND=1
@@ -212,10 +219,6 @@ while getopts "${optstring}" arg; do
                         cd "$(dirname ${folder})"
                         with_ssh_key git clone ${git_clone_url}
                         cd "${init_folder}" && cd "${folder}"
-                        # git init
-                        # git remote add -t master origin ${git_clone_url} 
-                        # with_ssh_key git remote update
-                        # with_ssh_key git pull
                         branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                         echo "[INFO] Check repository $folder on branch ${branch}"
                     else
@@ -331,7 +334,7 @@ while getopts "${optstring}" arg; do
                 fi
                 echo "[INFO] Merging"
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
-                if ! with_ssh_key git pull origin ${branch}
+                if ! with_ssh_key git pull ${git_remote} ${branch}
                 then
                     # No error
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
@@ -399,12 +402,12 @@ while getopts "${optstring}" arg; do
                     echo "[INFO] Merge success"
                 fi
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
-                if [[ "${strategy}" =~ "merge" ]] && [[ -n `git diff --stat --cached origin/${branch}` ]]; then
+                if [[ "${strategy}" =~ "merge" ]] && [[ -n `git diff --stat --cached ${git_remote}/${branch}` ]]; then
                     if [[ $read_only = true ]]; then
                         echo "[INFO] Read only: would have push changes"
                     else
                         echo "[INFO] Pushing changes"
-                        with_ssh_key git push -u origin ${branch} 2>&1
+                        with_ssh_key git push -u ${git_remote} ${branch} 2>&1
                     fi
                 fi
 

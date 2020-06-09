@@ -8,10 +8,12 @@ Warning:
 
 Usage summary: `autogit.sh [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] [-u <Strategy>] [-m <Commit msg text> ][-f <Commit msg file>] [-t <Commit hash to reset>] [-i <Number of commits to show>] [-s <Number of stash to keep>] [-a] [-q] -r <Repository path>,[<Repository path>...]`
 
-Options:
-
 `-h`      Print this help message.  
-`-r <Path>,[<Path>...]`  Path to managed repository, can be multiple comma separated. Only remote `origin` can be used. Make sure all repositories exists. Required.  
+
+Principal options:
+
+`-r <Path>,[<Path>...]`  Path to managed repository, can be multiple comma separated. Make sure all repositories exists. Required.  
+`-k <Key>`    Path to a valid ssh key. Required if git authentication is not already working with default key.  
 `-u <Strategy>`   Update the current branch from and to upstream with a defined strategy. This feature supports multiple repo values.
   - `merge` -> **Restore origninal state if conflicts**. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, roll-back changes leaving the repo in the same state as before calling the script. Exit with code `2` if merge failed.
   - `merge-overwrite` -> **Keep local changes if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll back changes, pull and re-apply saved changes by accepting only local changes (overwrite), commit and push to remote. Warning, the overwrite might fail leaving the repository in a conflict state if you comitted local files. Exit with code `2` if overwrite failed.
@@ -20,17 +22,22 @@ Options:
   - `merge-or-fail` -> **Leave the reposity as is if conflicts**. Save changes as stash (if-any). Warning: this step can fail, the sctipt will continue without saving the stash, commit, pull and push. If pull fails, leave the git repositiry in a conflict state with exit code `2`.
   - `stash` -> **No conflicts, always discard local changes**. Always update from remote. Stash the changes and pull. Do not require a write acces to git server.  
 
-`-k <Key>`    Path to ssh key. Required if git authentication is not already working with default key.  
-`-o`    Read-only mode. Do not commit or push any changes. Will still pull and merge remote changes into working copy. Use with `-u <Strategy>`.  
-`-a`  Add all untracked files to git. Use with `-u <Strategy>`.  
-`-m <Commit msg text>`    The text will be used as the fist line of the commit message, then the generated name with timestamp and then the file content. This can be used with `-f <Commit msg file>`. Use with `-u <Strategy>`.  
-`-f <Commit msg file>`    Specify a commit message from a file. Use with `-u <Strategy>`.  
+Automatic update configuration, to use with `-u <Strategy>`:
+
+`-m <Commit msg text>`    Fist line of the commit message.  
+`-f <Commit msg file>`    Commit message from a file.  
+`-a`  Add all untracked files to git.  
+`-x <Remote>`   Use specific git remote to synchronize changes. Origin by default. Will be applied to all repositories.  
+`-o`    Read-only mode. Do not commit or push any changes. Will still pull and merge remote changes into working copy. 
+
+Other features: 
+
 `-t <Commit>` Hard reset the local branch to the specified commit. Multiple repo values are not supported by this feature  
 `-i <Number of commits to show>`  Shows tracked files, git status and commit history of last N commits.  
-`-q`      Be quiet, do not print anything except errors.  
 `-b <Branch>` Switch to the specified branch or tag. Exit with code `6` if changed files in working tree, please merge changes first.  
 `-s <Number of stashes to keep>`  Clean stashes and keep the N last.  
-`-c <Url>`    URL of the git source. If the repo folder doesn't exist, init the repository upstream on master branch.  Required if the repo folder doesn't exists. Multiple git repository values are not supported by this feature.
+`-c <Url>`    URL of the git source. If the repo folder doesn't exist, clone it. Multiple git repository values are not supported by this feature.  
+`-q`      Be quiet, do not print anything except errors.  
 
 Examples :  
 `$ ./autogit.sh -r ~/isrm-portal-conf/ -u merge -i 5`  
