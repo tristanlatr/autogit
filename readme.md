@@ -27,7 +27,7 @@ Automatic update configuration, to use with `-u <Strategy>`:
 `-m <Commit msg text>`    Fist line of the commit message.  
 `-f <Commit msg file>`    Commit message from a file.  
 `-a`  Add all untracked files to git.  
-`-x <Remote>`   Use specific git remote to synchronize changes. Origin by default. Will be applied to all repositories.  
+`-x <Remote>`   Use specific git remote to synchronize changes. Origin by default. Applied to all repositories.  
 `-o`    Read-only mode. Do not commit or push any changes. Will still pull and merge remote changes into working copy. 
 
 Other features: 
