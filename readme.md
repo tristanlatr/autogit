@@ -11,7 +11,7 @@ Usage summary: `autogit.sh [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>
 Options:
 
 `-h`      Print this help message.  
-`-r <Path>, [<Path>...]`  Path to managed repository, can be multiple comma separated. Only remote `origin` can be used. Make sure all repositories exists. Required.  
+`-r <Path>,[<Path>...]`  Path to managed repository, can be multiple comma separated. Only remote `origin` can be used. Make sure all repositories exists. Required.  
 `-u <Strategy>`   Update the current branch from and to upstream with a defined strategy. This feature supports multiple repo values.
   - `merge` -> **Restore origninal state if conflicts**. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, roll-back changes leaving the repo in the same state as before calling the script. Exit with code `2` if merge failed.
   - `merge-overwrite` -> **Keep local changes if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll back changes, pull and re-apply saved changes by accepting only local changes (overwrite), commit and push to remote. Warning, the overwrite might fail leaving the repository in a conflict state if you comitted local files. Exit with code `2` if overwrite failed.
