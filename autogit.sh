@@ -76,8 +76,12 @@ with_ssh_key(){
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
-            git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
-            >&2 echo "[ERROR] Fatal error. Failed command: $*" ; exit 1  
+            >&2 echo "[WARNING] Retrying in 3 seconds. Failed command (with_ssh_key): $*"
+            sleep 3
+            if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
+                git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
+                >&2 echo "[ERROR] Fatal error. Failed command (with_ssh_key): $*" ; exit 1  
+            fi
         fi
         IFS=$'\n\t,'
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
