@@ -13,6 +13,10 @@ exec 6>&1
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t,'
+
+# Setting no edit merge option so git won't open editor when doing git pull
+git config --global core.mergeoptions --no-edit
+
 # SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q] [-o]
 # You can set default values here
 # Repositories: Default repositorie(s). Option  -r <>
@@ -61,15 +65,7 @@ usage(){
     download_docs_if_not_found
     cat "$DIR/readme.md"
 }
-nofail(){
-    if ! $@; then
-        >&2 echo "[WARNING] Retrying in 3 seconds. Failed command: $@"
-        sleep 3
-        if ! $@; then
-            >&2 echo "[ERROR] Fatal error. Failed command: $@" ; exit 1
-        fi
-    fi
-}
+
 # Usage: with_ssh_key command --args (required)
 with_ssh_key(){
     # echo "[DEBUG] with_ssh_key params: $@"
@@ -83,13 +79,13 @@ with_ssh_key(){
             sleep 3
             if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
                 git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
-                >&2 echo "[ERROR] Fatal error. Failed command (with_ssh_key): $*" ; exit 1  
+                >&2 echo "[ERROR] Fatal error. Failed command (with_ssh_key): $*" ; return 1
             fi
         fi
         IFS=$'\n\t,'
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
-        nofail $@
+        $@
     fi
 }
 # Usage : if is_changes_in_tracked_files; then ...
@@ -107,7 +103,7 @@ commit_local_changes(){
         echo "[INFO] Committing changes"
         git add -u
         echo -e "${commit_msg_text}\n" "${commit_msg_from_file}\n" "${commit_and_stash_name}" > /tmp/commit-msg.txt
-        nofail git commit -F /tmp/commit-msg.txt
+        git commit -F /tmp/commit-msg.txt
     elif [[ $read_only = true ]]; then
         echo "[INFO] Read only: would have commit changes: ${commit_and_stash_name}"
     fi
