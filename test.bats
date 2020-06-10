@@ -4,6 +4,12 @@
 
 HERE=$BATS_TEST_DIRNAME
 
+git config --global user.email "autogit@mail.com" 
+
+git config --global user.name "autogit"
+
+
+
 function setup {
 
   # Setup new testing repos under testing-1 and testing-2
