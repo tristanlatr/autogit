@@ -1,0 +1,22 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: test
+on: push
+jobs: 
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }} 
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v1
+      - name: Run tests
+        run: |      
+          git clone https://github.com/bats-core/bats-core.git
+          cd bats-core 
+          ./install.sh $HOME
+          bats ./test.bats
+
