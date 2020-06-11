@@ -281,8 +281,8 @@ function teardown {
 
   # Run autogit on repo 2. Will try to merge and leave the repo in a new branch
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-or-branch
-  echo $output >&3
-  # Test status merge failed
+  # echo $output >&3
+  # Test status ok
   [ "$status" -eq 0 ]
 
   readme2_after_merge=`cat $HERE/testing-2/test-autogit/README.md`
@@ -297,14 +297,14 @@ function teardown {
 
   # Run autogit on repo 1, should not change anything
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
-  echo $output >&3
+  # echo $output >&3
   readme1_after_merge=`cat $HERE/testing-1/test-autogit/README.md`
   # Test readme files the same before and after merge
   [ "$readme1_after_merge" = "$readme1_before_merge" ]
 
   # Run autogit on repo2 to swich to master branch
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -b master -u merge
-  echo $output >&3
+  # echo $output >&3
   # Test status merge ok
   [ "$status" -eq 0 ]
 
@@ -316,7 +316,7 @@ function teardown {
   # Come back to new branch and test file content
   # Run autogit on repo2 to reswich to new branch
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -b $new_branch -u merge
-  echo $output >&3
+  # echo $output >&3
   # Test status merge failed
   [ "$status" -eq 0 ]
 
