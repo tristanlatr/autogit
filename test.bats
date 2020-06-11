@@ -281,6 +281,7 @@ function teardown {
 
   # Run autogit on repo 2. Will try to merge and leave the repo in a new branch
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-or-branch
+  echo $output >&3
   # Test status merge failed
   [ "$status" -eq 0 ]
 
@@ -289,19 +290,70 @@ function teardown {
   # Test the file haven't change
   [ "$readme2_before_merge" = "$readme2_after_merge" ]
 
-  # Run autogit repo 1, should not change anything
+  cd $HERE/testing-2/test-autogit/
+  new_branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
+  [[ "${new_branch}" =~ "autogit" ]]
+  cd $HERE
+
+  # Run autogit on repo 1, should not change anything
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output >&3
   readme1_after_merge=`cat $HERE/testing-1/test-autogit/README.md`
-  # Test readme files the same accros repos
+  # Test readme files the same before and after merge
   [ "$readme1_after_merge" = "$readme1_before_merge" ]
 
   # Run autogit on repo2 to swich to master branch
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -b master -u merge
-  # Test status merge failed
+  echo $output >&3
+  # Test status merge ok
   [ "$status" -eq 0 ]
 
   readme2_after_swicth_branch_merge=`cat $HERE/testing-2/test-autogit/README.md`
 
   # Test the file haven't change on master
   [ "$readme1_before_merge" = "$readme2_after_swicth_branch_merge" ]
+
+  # Come back to new branch and test file content
+  # Run autogit on repo2 to reswich to new branch
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -b $new_branch -u merge
+  echo $output >&3
+  # Test status merge failed
+  [ "$status" -eq 0 ]
+
+  readme2_end=`cat $HERE/testing-2/test-autogit/README.md`
+
+  # Test the file haven't change on master
+  [ "$readme2_before_merge" = "$readme2_end" ]
+}
+
+@test "Test checkout" {
+  # Tests checkout inmpossible because of changed files
+}
+
+@test "Test read-only" {
+  # Tests that no commit get pushed with -o option
+}
+
+@test "Test repo init" {
+  # Test -c flag
+}
+
+@test "Test stash" {
+  # test stash strategy
+}
+
+@test "Test reset" {
+  # Test -t flag
+}
+
+@test "Test clear stashes" {
+  # Test -s flag
+}
+
+@test "Test show informations" {
+  # Test -i flag
+}
+
+@test "Test different remote" {
+  
 }
