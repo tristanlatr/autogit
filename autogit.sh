@@ -70,6 +70,7 @@ host=`hostname`
 init_folder=`pwd`
 date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
 commit_and_stash_name="[autogit] Changes on ${host} ${date_time_str}"
+
 # FUNCTIONS
 download_docs_if_not_found(){
     if ! [[ -e "$DIR/readme.md" ]]; then
@@ -91,17 +92,18 @@ usage(){
 # Usage: with_ssh_key command --args (required)
 with_ssh_key(){
     # echo "[DEBUG] with_ssh_key params: $@"
-    # Need to reset the IFS temporarly to space hum...
+    # Need to reset the IFS temporarly to space because encapsulating git command in ssh-agent
+    # seems to fuck up with regular "$@" ...
     IFS=' '
     if [[ ! -z "${ssh_key}" ]] ; then
         git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
-            >&2 echo "[WARNING] Retrying in 3 seconds. Failed command (with_ssh_key): $*"
+            >&2 echo "[WARNING] Retrying in 3 seconds. Failed command: $*"
             sleep 3
             if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
                 git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
-                >&2 echo "[ERROR] Fatal error. Failed command (with_ssh_key): $*" ; return 1
+                >&2 echo "[ERROR] Fatal error. Failed command: $*" ; return 1
             fi
         fi
         IFS=$'\n\t,'
@@ -188,7 +190,10 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
-# Parse script configuration and init values
+
+#########################################################
+#             Script configuration and init values
+#########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
         k)
@@ -215,7 +220,10 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
-# Parse repositories and check them
+
+#########################################################
+#             Reposirory: -r <path>      
+#########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
         r)            
@@ -250,12 +258,16 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
+
 # No repository selected failure
 if [[ ${#repositories[@]} -eq 0 ]]; then
     >&2 echo "[ERROR] You need to set the repository '-r <Path(s)>'."
     exit 5
 fi 
-# Hard reset
+
+#########################################################
+#               Reset: -t <sha>      
+#########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
         t) #Reseting to previous commit
@@ -272,7 +284,10 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
-# Checkout
+
+#########################################################
+#               Checkout: -b <branch>      
+#########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
         b) #Checkout
@@ -282,7 +297,7 @@ while getopts "${optstring}" arg; do
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                 if [[ ! "${OPTARG}" == "${branch}" ]]; then
                     if ! is_changes_in_tracked_files; then
-                        if ! git checkout -b ${OPTARG}
+                        if ! git checkout -b ${OPTARG} 2>/dev/null
                         then
                             git checkout ${OPTARG}
                         fi
@@ -299,23 +314,29 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
-# Update with s
+
+#########################################################
+#               Update: -u <stategy>      
+#########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
-        u) #Update
+        u)
+            # Check if strategy string valid
+            strategy=${OPTARG}
+            if [[ ! "${strategy}" = "merge" ]] && [[ ! "${strategy}" = "merge-overwrite" ]] && [[ ! "${strategy}" = "merge-or-branch" ]] && [[ ! "${strategy}" = "merge-or-stash" ]] && [[ ! "${strategy}" = "merge-or-fail" ]] && [[ ! "${strategy}" = "stash" ]]; then
+                >&2 echo -e "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument.\nPlease see '$0 -h' for more infos." 
+                exit 3
+            fi
+
             for folder in ${repositories}; do
                 
                 cd $folder
                 echo "[INFO] Updating ${folder}"
-                strategy=${OPTARG}
 
-                if [[ ! "${strategy}" = "merge" ]] && [[ ! "${strategy}" = "merge-overwrite" ]] && [[ ! "${strategy}" = "merge-or-branch" ]] && [[ ! "${strategy}" = "merge-or-stash" ]] && [[ ! "${strategy}" = "merge-or-fail" ]] && [[ ! "${strategy}" = "stash" ]]; then
-                    >&2 echo -e "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument.\nPlease see '$0 -h' for more infos." 
-                    exit 3
-                fi
                 # If there is any kind of changes in the working tree
                 if [[ -n `git status -s` ]]; then
                     git_stash_args=""
+                    # Adding untracked files if specified
                     if [[ "${git_add_untracked}" = true ]]; then
                         echo "[INFO] Adding untracked files"
                         git add .
@@ -323,12 +344,15 @@ while getopts "${optstring}" arg; do
                     fi
                     echo "[INFO] Locally changed files:"
                     git status -s
+
                     # If staged or unstaged changes in the tracked files in the working tree
                     if is_changes_in_tracked_files; then
+
+                        # Save stash
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
                         if ! git stash save ${git_stash_args} "${commit_and_stash_name}"
                         then
-                            >&2 echo "[ERROR] Unable to save stash, repository can be in a conflict state" 
+                            >&2 echo "[ERROR] Unable to save stash, repository is probably in a conflict state" 
                             >&2 echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
                             exit 7
                         else
@@ -337,6 +361,8 @@ while getopts "${optstring}" arg; do
                                 exit 8
                             fi
                         fi
+
+                        # Apply changes if merge strategy is not stash
                         if [[ "${strategy}" =~ "merge" ]]; then
                             if [[ -n `git stash list | grep "${date_time_str}"` ]]; then
                                 echo "[INFO] Applying stash in order to merge"
@@ -346,6 +372,8 @@ while getopts "${optstring}" arg; do
                             fi
                             commit_local_changes
                         fi
+                    else
+                        echo "[INFO] No local changes in tracked files"
                     fi
                 else
                     echo "[INFO] No local changes"
@@ -354,7 +382,9 @@ while getopts "${optstring}" arg; do
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                 if ! with_ssh_key git pull ${git_remote} ${branch}
                 then
-                    # No error
+                    #########################################################
+                    #      merge-or-stash conflict resolution strategy
+                    #########################################################
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
                         >&2 echo "[WARNING] Merge failed. Reseting to last commit."
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
@@ -362,7 +392,9 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Pulling changes"
                         with_ssh_key git pull
                     
-                    # Force overwrite
+                    #########################################################
+                    #     merge-overwrite conflict resolution strategy
+                    #########################################################
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
                         >&2 echo "[WARNING] Merge failed. Reseting to last commit"
                         git reset --hard HEAD~1
@@ -389,6 +421,9 @@ while getopts "${optstring}" arg; do
                         fi
                         commit_local_changes
 
+                    #########################################################
+                    #     merge-or-branch conflict resolution strategy   
+                    #########################################################
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
                         >&2 echo "[WARNING] Merge failed. Creating a new remote branch ${conflit_branch}"
@@ -400,11 +435,17 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] You changes will be pushed to remote branch ${conflit_branch}. Please merge the branch"
                         >&2 echo "[WARNING] Repository is on a new branch"
 
+                    #########################################################
+                    #     merge-or-fail conflict resolution strategy   
+                    #########################################################
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
                         >&2 echo "[ERROR] Merge failed. Repository is in a conflict state!"
                         >&2 echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
                         exit 2
                     
+                    #########################################################
+                    #     default merge conflict resolution strategy   
+                    #########################################################
                     else
                         >&2 echo "[WARNING] Merge failed. Reseting to last commit and re-applying stashed changes."
                         git reset --hard HEAD~1
@@ -419,13 +460,22 @@ while getopts "${optstring}" arg; do
                 else
                     echo "[INFO] Merge success"
                 fi
+
+                #########################################################
+                #       push changes to current branch   
+                #########################################################
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
-                if [[ "${strategy}" =~ "merge" ]] && [[ -n `git diff --stat --cached ${git_remote}/${branch}` ]]; then
-                    if [[ $read_only = true ]]; then
-                        echo "[INFO] Read only: would have push changes"
-                    else
-                        echo "[INFO] Pushing changes"
-                        with_ssh_key git push -u ${git_remote} ${branch} 2>&1
+                changed_files=`git diff --stat --cached ${git_remote}/${branch} -- 2>/dev/null || echo 1`
+
+                if [[ "${strategy}" =~ "merge" ]]; then
+                    if [[ -n "${changed_files}" ]]; then
+                        if [[ $read_only = true ]]; then
+                            echo "[INFO] Read only: would have push changes"
+                        else
+                            echo "[INFO] Pushing changes"
+                            with_ssh_key git push -u ${git_remote} ${branch}
+                            with_ssh_key git fetch --quiet
+                        fi
                     fi
                 fi
 
@@ -435,7 +485,10 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1
-# Clean stashes
+
+#########################################################
+#     Clean stashes: -s <Number of stash to keep>      
+#########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
         s)
@@ -463,7 +516,10 @@ while getopts "${optstring}" arg; do
     esac
 done
 OPTIND=1     
-# Show informations
+
+#########################################################
+#   Show informations: -i <N last commits activity>      
+#########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
         i)
@@ -482,5 +538,5 @@ while getopts "${optstring}" arg; do
             ;;
     esac
 done
-shift "$((OPTIND-1))"
+
 echo "[INFO] Success"
