@@ -19,6 +19,9 @@ function setup {
   git init --bare $HERE/test-autogit.git
   git clone $HERE/test-autogit.git
   cd test-autogit
+  # Setup git required options
+  git config user.email "autogit@mail.com" 
+  git config user.name "autogit"
   echo "Testing autogit" > README.md
   git add README.md
   git commit -m "Initial commit with readme"
