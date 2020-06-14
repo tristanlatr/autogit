@@ -23,23 +23,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Install directory
+#########################################################
+#      Initialization and config default values
+#########################################################
+
 # Resolve current directory path. Code from https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself/246128#246128
 # Resolve $SOURCE until the file is no longer a symlink
 # If $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"; SOURCE="$(readlink "$SOURCE")"; [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"; done
-DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
-# Saves stdout, Restore stdout: `exec 1>&6 6>&- `
-exec 6>&1 
+while [ -h "$SOURCE" ]; do HERE="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"; SOURCE="$(readlink "$SOURCE")"; [[ $SOURCE != /* ]] && SOURCE="$HERE/$SOURCE"; done
+HERE="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+
 # Setting bash strict mode. See http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t,'
 
-# Setting no edit merge option so git won't open editor when doing git pull
-git config --global core.mergeoptions --no-edit
-
-# SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q] [-o]
+# SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q] [-o] [-x <>]
 # You can set default values here
 # Repositories: Default repositorie(s). Option  -r <>
 # Exemple: repositories=("~/autogit/","~/wpscan/")
@@ -57,10 +56,10 @@ commit_msg_from_file=""
 git_add_untracked=false
 # Quiet: true/false. Option [-q]
 is_quiet=false
-# Read only: If set to true equivalent to (repository) read-only: no commit or push changes.
+# Read only: If set to true equivalent to (repository) read-only: no commit or push changes. [-o]
 # Will still pull and merge remote changes into working copy!
 read_only=false
-# Git remote
+# Git remote [-x <>]
 git_remote=origin
 
 # SCRIPT VARIABLES
@@ -71,10 +70,12 @@ init_folder=`pwd`
 date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
 commit_and_stash_name="[autogit] Changes on ${host} ${date_time_str}"
 
-# FUNCTIONS
+#########################################################
+#                    Functions
+#########################################################
 download_docs_if_not_found(){
-    if ! [[ -e "$DIR/readme.md" ]]; then
-        cd $DIR
+    if ! [[ -e "$HERE/readme.md" ]]; then
+        cd $HERE
         echo "Downloading docs from the internet..."
         wget --quiet https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md
         cd $init_folder
@@ -82,32 +83,30 @@ download_docs_if_not_found(){
 }
 quick_usage(){
     download_docs_if_not_found
-    cat "$DIR/readme.md" | grep "Usage summary"
+    cat "$HERE/readme.md" | grep "Usage summary"
 }
 usage(){
     download_docs_if_not_found
-    cat "$DIR/readme.md"
+    cat "$HERE/readme.md"
 }
 
-# Usage: with_ssh_key command --args (required)
+# Usage: with_ssh_key command
 with_ssh_key(){
     # echo "[DEBUG] with_ssh_key params: $@"
     # Need to reset the IFS temporarly to space because encapsulating git command in ssh-agent
-    # seems to fuck up with regular "$@" ...
+    # Seems not to work with regular "$@" ...
     IFS=' '
     if [[ ! -z "${ssh_key}" ]] ; then
-        git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
             >&2 echo "[WARNING] Retrying in 3 seconds. Failed command: $*"
             sleep 3
             if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
-                git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
-                >&2 echo "[ERROR] Fatal error. Failed command: $*" ; return 1
+                >&2 echo "[ERROR] Fatal error. Failed command: $*"
+                return 1
             fi
         fi
         IFS=$'\n\t,'
-        git config core.sshCommand 'ssh -o StrictHostKeyChecking=yes'
     else
         $@
     fi
@@ -133,9 +132,9 @@ commit_local_changes(){
     fi
 }
 
-# Begin of the main program
-
-# Syntax check
+#########################################################
+#                    Syntax check
+#########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
         h) ;;
@@ -161,7 +160,11 @@ while getopts "${optstring}" arg; do
 done
 OPTIND=1
 
-# Setting verbosity
+#########################################################
+#                    Quiet mode : -q
+#########################################################
+# Saves stdout, Restore stdout: `exec 1>&6 6>&- `
+exec 6>&1 
 while getopts "${optstring}" arg; do
     case "${arg}" in
         q)
@@ -171,16 +174,21 @@ while getopts "${optstring}" arg; do
 done
 OPTIND=1
 if [[ "${is_quiet}" = true ]]; then
+    # Redirect stdout to /dev/null
     exec > /dev/null
 fi
 
-# Banner
+#########################################################
+#                       Banner
+#########################################################
 echo "          ___  __   __    ___ "
 echo " /\  |  |  |  /  \ / _\` |  |  "
 echo "/~~\ \__/  |  \__/ \__> |  |  "
 echo "                              "
 
-# Print help and exit if -h
+#########################################################
+#                       Help : -h
+#########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
         h) #Print help
@@ -192,15 +200,15 @@ done
 OPTIND=1
 
 #########################################################
-#             Script configuration and init values
+#       Initiatlize script configuration from CLI
 #########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
         k)
-            ssh_key=${OPTARG}
+            ssh_key="${OPTARG}"
             ;;
         c)
-            git_clone_url=${OPTARG}
+            git_clone_url="${OPTARG}"
             ;;
         f)
             commit_msg_from_file=`cat "${OPTARG}"`
@@ -229,16 +237,18 @@ while getopts "${optstring}" arg; do
         r)            
             repositories=${OPTARG}
             for folder in ${repositories}; do
-                
+                # Check repo exist and contains .git folder
                 if [[ -d "$folder" ]]; then
                     cd $folder
                     if [[ ! -d .git ]]; then
-                        >&2 echo "[ERROR] Repository folder must contain a valid .git directory." ; exit 4
+                        >&2 echo "[ERROR] Repository folder must contain a valid .git directory."
+                        exit 4
                     fi
+                    # Fetch last commits
                     with_ssh_key git fetch --quiet
                     branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
-                    echo "[INFO] Check repository $folder on branch ${branch}"
                 else
+                    # Init repository
                     if [[ ! -z "${git_clone_url}" ]]; then
                         echo "[INFO] Local repository do no exist, initating it from ${git_clone_url}"
                         cd "${init_folder}"
@@ -246,12 +256,16 @@ while getopts "${optstring}" arg; do
                         with_ssh_key git clone ${git_clone_url}
                         cd "${init_folder}" && cd "${folder}"
                         branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
-                        echo "[INFO] Check repository $folder on branch ${branch}"
                     else
                         >&2 echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
                         exit 4
                     fi
                 fi
+                echo "[INFO] Repository $folder is on branch ${branch}"
+                # Setting no edit merge option so git won't open editor and accept default merge message if any, when doing git pull
+                git config core.mergeoptions --no-edit
+                # Setting host key check to no so git won't ask for user input to validate new server identity
+                git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
                 cd "${init_folder}"
             done
             ;;
@@ -333,6 +347,10 @@ while getopts "${optstring}" arg; do
                 cd $folder
                 echo "[INFO] Updating ${folder}"
 
+                #########################################################
+                #              Saving changes as stash
+                #########################################################
+
                 # If there is any kind of changes in the working tree
                 if [[ -n `git status -s` ]]; then
                     git_stash_args=""
@@ -350,25 +368,37 @@ while getopts "${optstring}" arg; do
 
                         # Save stash
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
-                        if ! git stash save ${git_stash_args} "${commit_and_stash_name}"
-                        then
-                            >&2 echo "[ERROR] Unable to save stash, repository is probably in a conflict state" 
-                            >&2 echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
-                            exit 7
+                        if ! git stash save ${git_stash_args} "${commit_and_stash_name}"; then
+                            # Get conflicting files list
+                            conflicting_files=`git diff --name-only --diff-filter=U`
+                            if [[ -n "${conflicting_files}" ]]; then
+                                >&2 echo "[WARNING] Already in the middle of a conflict with files:"
+                                echo "${conflicting_files}"
+                            fi
+                            if [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
+                                >&2 echo "[ERROR] Unable to save stash, repository is probably in a conflict state" 
+                                >&2 echo "[ERROR] Use '-t <Commit SHA>' to discard your changes" 
+                                >&2 echo "[ERROR] Use '-u merge-or-fail' to continue and pull changes even if 'git stash' fails"
+                                >&2 echo "[ERROR] Or solve conflicts manually from ${host}" 
+                                exit 7
+                            fi
                         else
                             if [[ -z `git stash list | grep "${date_time_str}"` ]] && [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
-                                >&2 echo "[ERROR] Looks like your stash could not be saved or you have no changes to save, to continue anyway, please use '-u merge-or-fail'" 
+                                >&2 echo "[ERROR] Looks like your stash could not be saved" 
+                                >&2 echo "[ERROR] Use '-u merge-or-fail' to continue and pull changes even if 'git stash' fails"
                                 exit 8
                             fi
                         fi
 
-                        # Apply changes if merge strategy is not stash
+                        # Apply changes if merge strategy is not stash and the stash exists
                         if [[ "${strategy}" =~ "merge" ]]; then
                             if [[ -n `git stash list | grep "${date_time_str}"` ]]; then
                                 echo "[INFO] Applying stash in order to merge"
                                 git stash apply --quiet stash@{0}
                             else
-                                >&2 echo "[WARNING] Your changes are not saved as stash" 
+                                >&2 echo "[WARNING] Your changes are not saved as stash, if 'git pull' fails, repository will be in a conflict state" 
+                                >&2 echo "[WARNING] Hit Ctrl+C now to cancel, or wait 5 seconds"
+                                sleep 5
                             fi
                             commit_local_changes
                         fi
@@ -378,10 +408,15 @@ while getopts "${optstring}" arg; do
                 else
                     echo "[INFO] No local changes"
                 fi
-                echo "[INFO] Merging"
+
+                #########################################################
+                #                       Merging changes
+                #########################################################
+                echo "[INFO] Merging remote changes"
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                 if ! with_ssh_key git pull ${git_remote} ${branch}
                 then
+
                     #########################################################
                     #      merge-or-stash conflict resolution strategy
                     #########################################################
@@ -401,10 +436,15 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Pulling changes"
                         if ! with_ssh_key git pull --quiet --no-commit
                         then
-                            >&2 echo "[WARNING] Last commit is also in conflict with remote. Giving up."
-                            >&2 echo "[ERROR] Merge overwrite failed. Repository is in a conflict state! Trying to apply last stash and quitting"
-                            >&2 echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option"
+                            # Aborting overwrite
+                            >&2 echo "[ERROR] Last commit is also in conflict with remote, too much to handle"
+                            >&2 echo "[ERROR] Aborting merge and re-applying stashed changes"
+                            git merge --abort
                             git stash apply --quiet stash@{0}
+                            >&2 echo "[ERROR] Use '-u merge-or-branch' to push changes to new remote branch"
+                            >&2 echo "[ERROR] Use '-t <Commit SHA>' to discard your changes" 
+                            >&2 echo "[ERROR] Or solve conflicts manually from ${host}" 
+                            >&2 echo "[ERROR] Merge overwrite failed, nothing should have changed" 
                             exit 2
                         fi
                         echo "[INFO] Applying last stash in order to merge"
@@ -417,7 +457,7 @@ while getopts "${optstring}" arg; do
                                 git add ${file}
                             done
                         else
-                            >&2 echo "[WARNING] Git stash apply successful, no need to overwrite"
+                            echo "[INFO] Git stash apply successful, no need to overwrite"
                         fi
                         commit_local_changes
 
@@ -447,13 +487,13 @@ while getopts "${optstring}" arg; do
                     #     default merge conflict resolution strategy   
                     #########################################################
                     else
-                        >&2 echo "[WARNING] Merge failed. Reseting to last commit and re-applying stashed changes."
+                        >&2 echo "[ERROR] Merge failed. Reseting to last commit and re-applying stashed changes."
                         git reset --hard HEAD~1
                         git stash apply --quiet stash@{0}
-                        echo "[INFO] Use '-u merge-overwrite' to overwrite remote content"
-                        echo "[INFO] Use '-u merge-or-branch' to push changes to new remote branch"
-                        echo "[INFO] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
-                        echo "[INFO] Or you can hard reset to previous commit using '-t <Commit SHA>' option. Your local changes will be erased."
+                        >&2 echo "[ERROR] Use '-u merge-overwrite' to overwrite remote content"
+                        >&2 echo "[ERROR] Use '-u merge-or-branch' to push changes to new remote branch"
+                        >&2 echo "[ERROR] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
+                        >&2 echo "[ERROR] Use '-t <Commit SHA>' to discard your changes" 
                         >&2 echo "[ERROR] Merge failed, nothing changed." 
                         exit 2
                     fi
@@ -462,7 +502,7 @@ while getopts "${optstring}" arg; do
                 fi
 
                 #########################################################
-                #       push changes to current branch   
+                #       Push changes to current branch   
                 #########################################################
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                 changed_files=`git diff --stat --cached ${git_remote}/${branch} -- 2>/dev/null || echo 1`
@@ -473,6 +513,8 @@ while getopts "${optstring}" arg; do
                             echo "[INFO] Read only: would have push changes"
                         else
                             echo "[INFO] Pushing changes"
+                            echo "[INFO] Changed files:"
+                            echo "${changed_files}"
                             with_ssh_key git push -u ${git_remote} ${branch}
                             with_ssh_key git fetch --quiet
                         fi

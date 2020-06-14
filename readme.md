@@ -12,18 +12,18 @@ Principal options:
 `-k <Key>`    Path to a valid ssh key. Required if git authentication is not already working with default key.  
 `-u <Strategy>`   Update the current branch from and to upstream with a defined strategy. This feature supports multiple repo values.
   - `merge` -> **Restore origninal state if conflicts**. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, roll-back changes leaving the repo in the same state as before calling the script. Exit with code `2` if merge failed.
-  - `merge-overwrite` -> **Keep local changes if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll back changes, pull and re-apply saved changes by accepting only local changes (overwrite), commit and push to remote. Warning, the overwrite might fail leaving the repository in a conflict state if you comitted local files. Exit with code `2` if overwrite failed.
-  - `merge-or-stash` -> **Keep remote changes if conflicts**. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash). Exit with code `2` if merge failed. Require a write access to git server.    
+  - `merge-overwrite` -> **Keep local changes if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll back changes, pull and re-apply saved changes by accepting only local changes (overwrite), commit and push to remote. Warning, the overwrite might fail if you comitted local files. Exit with code `2` if overwrite fails.
+  - `merge-or-stash` -> **Keep remote changes if conflicts**. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash).  
   - `merge-or-branch` -> **Create a new remote branch if conflicts**. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote **leaving the repository in a new branch**. 
-  - `merge-or-fail` -> **Leave the reposity as is if conflicts**. Save changes as stash (if-any). Warning: this step can fail, the sctipt will continue without saving the stash, commit, pull and push. If pull fails, leave the git repositiry in a conflict state with exit code `2`.
+  - `merge-or-fail` -> **Leave the reposity as is if conflicts**. Save changes as stash (if-any). Warning: this step can fail, the sctipt will continue without saving the stash. Commit, pull and push. If pull fails, leave the git repositiry in a conflict state and exit code `2`.
   - `stash` -> **No conflicts, always discard local changes**. Always update from remote. Stash the changes and pull. Do not require a write acces to git server.  
 
-Automatic update configuration, to use with `-u <Strategy>`:
+Automatic update configuration, to use with `-u <Strategy>` (applied to all repositories) :
 
 `-m <Commit msg text>`    Fist line of the commit message.  
 `-f <Commit msg file>`    Commit message from a file.  
 `-a`  Add all untracked files to git.  
-`-x <Remote>`   Use specific git remote to synchronize changes. Origin by default. Applied to all repositories.  
+`-x <Remote>`   Use specific git remote to synchronize changes. Origin by default. 
 `-o`    Read-only mode. Do not commit or push any changes. Will still pull and merge remote changes into working copy. 
 
 Other features: 
@@ -36,16 +36,26 @@ Other features:
 `-q`      Be quiet, do not print anything except errors.  
 
 Examples :  
-`$ ./autogit.sh -r ~/isrm-portal-conf/ -u merge -i 5`  
-Merge changes and show infos of the repository (last 5 commits).  
-`$ ./autogit.sh -r ~/isrm-portal-conf/ -t 00a3a3f`  
-Hard reset the repository to the specified commit.  
-`$ ./autogit.sh -k ~/.ssh/id_rsa2 -c git@github.com:mfesiem/msiempy.git -r ./test/msiempy/ -u merge`  
-Init a repo and pull (master by default). Use the specified SSH to authenticate.  
+
+Update `portal-conf` repository with the `bitbucket` SSH key.  
+```bash
+./autogit.sh -r ~/portal-conf/ -u merge -k ~/.ssh/bitbucket
+```
+
+Hard reset the `portal-conf` repository to the specified commit.  
+```bash
+./autogit.sh -r ~/isrm-portal-conf/ -t 00a3a3f
+````
+
+Clone new repository from github and checkout `develop` branch
+```
+./autogit.sh -c git@github.com:mfesiem/msiempy.git -r ./msiempy/ -u merge -b develop
+```
+
 
 Notes :
 
-This script will generate new stashes whenever called, use `-s` flag to clear stashes.
+This script will generate new stashes whenever called, use `-s` option to clear stashes.
 
 Return codes : 
 

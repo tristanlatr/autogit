@@ -4,10 +4,6 @@
 
 HERE=$BATS_TEST_DIRNAME
 
-# Setup git required options
-git config --global user.email "autogit@mail.com" 
-git config --global user.name "autogit"
-
 # Load BATS script libraries
 load "$HERE/bats-support/load.bash"
 load "$HERE/bats-assert/load.bash"
@@ -33,10 +29,18 @@ function setup {
   mkdir testing-2
   cd testing-1
   git clone ../test-autogit.git
-  cd ..
+  cd test-autogit
+  # Setup git required options
+  git config user.email "autogit@mail.com" 
+  git config user.name "autogit"
+  cd ../..
   cd testing-2
   git clone ../test-autogit.git
-
+  cd test-autogit
+  # Setup git required options
+  git config user.email "autogit@mail.com" 
+  git config user.name "autogit"
+  cd ../..
 }
 
 function teardown {
@@ -366,5 +370,13 @@ function teardown {
 }
 
 @test "Test different remote" {
+  
+}
+
+@test "Test fatal error" {
+  
+}
+
+@test "Test merge-overwrite fails then merge-or-branch success" {
   
 }
