@@ -385,15 +385,17 @@ function teardown {
   
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
   assert_success
-  
+  echo $output 
   assert [ `git stash list | wc -l` = "5" ]
   
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
+  echo $output 
   assert_success
   
   assert [ `git stash list | wc -l` = "5" ]
   
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 0 
+  echo $output
   assert_success
   
   assert [ -z `git stash list` ]
