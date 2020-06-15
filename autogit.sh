@@ -121,14 +121,14 @@ is_changes_in_tracked_files(){
 }
 # Usage: commit_local_changes
 commit_local_changes(){
-    if [[ $read_only = false ]]; then
-        echo "[INFO] Committing changes"
-        git add -u
-        echo -e "${commit_msg_text}\n" "${commit_msg_from_file}\n" "${commit_and_stash_name}" > /tmp/commit-msg.txt
-        git commit -F /tmp/commit-msg.txt
-    elif [[ $read_only = true ]]; then
-        echo "[INFO] Read only: would have commit changes: ${commit_and_stash_name}"
-    fi
+    #if [[ $read_only = false ]]; then
+    echo "[INFO] Committing changes"
+    git add -u
+    echo -e "${commit_msg_text}\n" "${commit_msg_from_file}\n" "${commit_and_stash_name}" > /tmp/commit-msg.txt
+    git commit -F /tmp/commit-msg.txt
+    #elif [[ $read_only = true ]]; then
+    #    echo "[INFO] Read only: would have commit changes: ${commit_and_stash_name}"
+    #fi
 }
 
 #########################################################
@@ -337,7 +337,7 @@ while getopts "${optstring}" arg; do
             # Check if strategy string valid
             strategy=${OPTARG}
             if [[ ! "${strategy}" = "merge" ]] && [[ ! "${strategy}" = "merge-overwrite" ]] && [[ ! "${strategy}" = "merge-or-branch" ]] && [[ ! "${strategy}" = "merge-or-stash" ]] && [[ ! "${strategy}" = "merge-or-fail" ]] && [[ ! "${strategy}" = "stash" ]]; then
-                >&2 echo -e "[ERROR] Unkwown strategy ${strategy} '-u <Strategy>' option argument.\nPlease see '$0 -h' for more infos." 
+                >&2 echo -e "[ERROR] Unkwown strategy ${strategy}. See '$0 -h' for help" 
                 exit 3
             fi
 
@@ -465,13 +465,12 @@ while getopts "${optstring}" arg; do
                     #########################################################
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
-                        >&2 echo "[WARNING] Merge failed. Creating a new remote branch ${conflit_branch}"
+                        >&2 echo "[WARNING] Merge failed. Creating a new branch ${conflit_branch}"
                         git reset --hard HEAD~1
                         git checkout -b ${conflit_branch}
-                        echo "[INFO] Applying stash in order to push to new remote branch"
                         git stash apply --quiet stash@{0}
                         commit_local_changes
-                        echo "[INFO] You changes will be pushed to remote branch ${conflit_branch}. Please merge the branch"
+                        echo "[INFO] You changes are applied to branch ${conflit_branch}"
                         >&2 echo "[WARNING] Repository is on a new branch"
 
                     #########################################################
@@ -479,7 +478,8 @@ while getopts "${optstring}" arg; do
                     #########################################################
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
                         >&2 echo "[ERROR] Merge failed. Repository is in a conflict state!"
-                        >&2 echo "[ERROR] Please solve conflicts manually from ${host} or hard reset to previous commit using '-t <Commit SHA>' option" 
+                        >&2 echo "[ERROR] Use '-t <Commit SHA>' to discard your changes" 
+                        >&2 echo "[ERROR] Or solve conflicts manually from ${host}"
                         exit 2
                     
                     #########################################################
@@ -541,9 +541,10 @@ while getopts "${optstring}" arg; do
                     stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                     if [[ -n "${stashes}" ]]; then
                         oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
-                        echo "[INFO] Cleaning stashes $folder"
+                        echo "[INFO] Cleaning stashes from $folder"
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
+                            echo "[INFO] Dropping $stash"
                             if ! git stash drop "${stash}"
                             then
                                 stash_name=`git stash list | grep "${stash}"`

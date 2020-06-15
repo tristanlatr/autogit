@@ -345,9 +345,12 @@ function teardown {
 
   # Writing a second line to readme file 1
   echo "New line in readme" >> $HERE/testing-1/test-autogit/README.md
-
+  
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -b another_branch
+  
+  assert_failure 6
+  
 }
-
 @test "Test read-only" {
   # Tests that no commit get pushed with -o option
 }
@@ -366,6 +369,37 @@ function teardown {
 
 @test "Test clear stashes" {
   # Test -s flag
+  
+  # generate 10 new stashes in testing repo 1
+  
+  for i in {1..10}; do
+      # Writing a line to readme file 1
+      echo "New line $i in readme" >> $HERE/testing-1/test-autogit/README.md
+      run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge 
+      assert_success
+  done
+  
+  cd $HERE/testing-1/test-autogit
+  
+  assert [ `git stash list | wc -l` = "10" ]
+  
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
+  assert_success
+  echo $output 
+  assert [ `git stash list | wc -l` = "5" ]
+  
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
+  echo $output 
+  assert_success
+  
+  assert [ `git stash list | wc -l` = "5" ]
+  
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 0 
+  echo $output
+  assert_success
+  
+  assert [ -z `git stash list` ]
+  
 }
 
 @test "Test show informations" {
