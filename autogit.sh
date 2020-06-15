@@ -95,7 +95,6 @@ with_ssh_key(){
     # echo "[DEBUG] with_ssh_key params: $@"
     # Need to reset the IFS temporarly to space because encapsulating git command in ssh-agent
     # Seems not to work with regular "$@" ...
-    IFS=' '
     if [[ ! -z "${ssh_key}" ]] ; then
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
