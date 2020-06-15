@@ -379,6 +379,8 @@ function teardown {
       assert_success
   done
   
+  cd $HERE/testing-1/test-autogit
+  
   assert [ `git stash list | wc -l` = "10" ]
   
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
