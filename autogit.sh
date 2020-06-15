@@ -98,8 +98,8 @@ with_ssh_key(){
     if [[ ! -z "${ssh_key}" ]] ; then
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
-            >&2 echo "[WARNING] Retrying in 3 seconds. Failed command: $*"
-            sleep 3
+            >&2 echo "[WARNING] Retrying in 5 seconds. Failed command: $*"
+            sleep 5
             if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
                 >&2 echo "[ERROR] Fatal error. Failed command: $*"
                 return 1
