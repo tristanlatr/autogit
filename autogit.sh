@@ -542,9 +542,10 @@ while getopts "${optstring}" arg; do
                     stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
                     if [[ -n "${stashes}" ]]; then
                         oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
-                        echo "[INFO] Cleaning stashes $folder"
+                        echo "[INFO] Cleaning stashes from $folder"
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
+                            echo "[INFO] Dropping $stash"
                             if ! git stash drop "${stash}"
                             then
                                 stash_name=`git stash list | grep "${stash}"`
