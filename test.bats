@@ -348,7 +348,7 @@ function teardown {
   
   $HERE/autogit.sh -r $HERE/testing-1/test-autogit -b another_branch
   
-  asert_failure 6
+  assert_failure 6
   
 }
 @test "Test read-only" {
