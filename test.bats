@@ -369,6 +369,33 @@ function teardown {
 
 @test "Test clear stashes" {
   # Test -s flag
+  
+  # generate 10 new stashes in testing repo 1
+  
+  for i in {1..10}; do
+      # Writing a line to readme file 1
+      echo "New line $i in readme" >> $HERE/testing-1/test-autogit/README.md
+      run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge 
+      assert_success
+  done
+  
+  assert [ `git stash list | wc -l` = "10" ]
+  
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
+  assert_success
+  
+  assert [ `git stash list | wc -l` = "5" ]
+  
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
+  assert_success
+  
+  assert [ `git stash list | wc -l` = "5" ]
+  
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 0 
+  assert_success
+  
+  assert [ -z `git stash list` ]
+  
 }
 
 @test "Test show informations" {
