@@ -345,9 +345,12 @@ function teardown {
 
   # Writing a second line to readme file 1
   echo "New line in readme" >> $HERE/testing-1/test-autogit/README.md
-
+  
+  $HERE/autogit.sh -r $HERE/testing-1/test-autogit -b another_branch
+  
+  asert_failure 6
+  
 }
-
 @test "Test read-only" {
   # Tests that no commit get pushed with -o option
 }
