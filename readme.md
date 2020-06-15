@@ -11,19 +11,19 @@ Principal options:
 `-r <Path>,[<Path>...]`  Path to managed repository, can be multiple comma separated. Make sure all repositories exists. Required.  
 `-k <Key>`    Path to a valid ssh key. Required if git authentication is not already working with default key.  
 `-u <Strategy>`   Update the current branch from and to upstream with a defined strategy. This feature supports multiple repo values.
-  - `merge` -> **Restore origninal state if conflicts**. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, roll-back changes leaving the repo in the same state as before calling the script. Exit with code `2` if merge failed.
-  - `merge-overwrite` -> **Keep local changes if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll back changes, pull and re-apply saved changes by accepting only local changes (overwrite), commit and push to remote. Warning, the overwrite might fail if you comitted local files. Exit with code `2` if overwrite fails.
+  - `merge` -> **Restore origninal state if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll-back changes leaving the repo in the same state as before calling the script. Exit with code `2` if merge failed.
+  - `merge-overwrite` -> **Keep local changes if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll back changes, pull and re-apply saved changes by accepting only local changes (overwrite), commit and push to remote. Warning, the overwrite will fail if previous commit is also in conflict with remote, and exit with code `2`
   - `merge-or-stash` -> **Keep remote changes if conflicts**. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash).  
   - `merge-or-branch` -> **Create a new remote branch if conflicts**. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote **leaving the repository in a new branch**. 
-  - `merge-or-fail` -> **Leave the reposity as is if conflicts**. Save changes as stash (if-any). Warning: this step can fail, the sctipt will continue without saving the stash. Commit, pull and push. If pull fails, leave the git repositiry in a conflict state and exit code `2`.
-  - `stash` -> **No conflicts, always discard local changes**. Always update from remote. Stash the changes and pull. Do not require a write acces to git server.  
+  - `merge-or-fail` -> **Leave the reposity as is if conflicts**. Save changes as stash (if-any). Warning: this step can fail, the sctipt will continue without saving the stash. Commit, pull and push. If pull fails, leave the git repositiry in a conflict state and exit with code `2`.
+  - `stash` -> **No conflicts possible, always discard local changes**. Always update from remote. Stash the changes and pull. Do not require a write acces to git server.  
 
 Automatic update configuration, to use with `-u <Strategy>` (applied to all repositories) :
 
 `-m <Commit msg text>`    Fist line of the commit message.  
 `-f <Commit msg file>`    Commit message from a file.  
 `-a`  Add all untracked files to git.  
-`-x <Remote>`   Use specific git remote to synchronize changes. Origin by default. 
+`-x <Remote>`   Use specific git remote to synchronize changes. Origin by default.  
 `-o`    Read-only mode. Do not push any changes. Will still pull and commit remote changes into working copy. 
 
 Other features: 
@@ -48,7 +48,7 @@ Hard reset the `portal-conf` repository to the specified commit.
 ````
 
 Clone `msiempy` repository from github and checkout `develop` branch
-```
+```bash 
 ./autogit.sh -c git@github.com:mfesiem/msiempy.git -r ./msiempy/ -b develop
 ```
 
