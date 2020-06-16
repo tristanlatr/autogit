@@ -273,8 +273,11 @@ while getopts "${optstring}" arg; do
                 git config log.abbrevCommit true
                 # Enable colors in color-supporting terminals
                 git config color.ui auto
-                # Configs from https://gist.github.com/tdd/470582 and https://gist.github.com/pksunkara/988716
+                # Use default git merge
+                git config pull.rebase false
                 
+                # Configs from https://gist.github.com/tdd/470582 and https://gist.github.com/pksunkara/988716
+
                 cd "${init_folder}"
             done
             ;;
