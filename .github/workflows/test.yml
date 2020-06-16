@@ -29,7 +29,7 @@ jobs:
     - name: Install git
       run: |
         yum -y update || apt-get -y update
-        yum -y install git || apt-get -y install git
+        yum -y install git || apt-get -y install git || apk add git
         git --version
 
     - name: Install BATS requiremetns
