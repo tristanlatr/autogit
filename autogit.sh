@@ -516,7 +516,8 @@ while getopts "${optstring}" arg; do
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
 
                 if [[ "${strategy}" =~ "merge" ]]; then
-                    if [[ -n `git log @{push}..` ]]; then
+                    # If commits are ready to be pushed or that remote branch do not exist yet: push changes
+                    if [[ -n `git log @{push}..` ]] || [[ -z `git ls-remote --heads ${git_remote} ${branch}` ]]; then
                         if [[ $read_only = true ]]; then
                             echo "[INFO] Read only: would have push changes"
                         else
