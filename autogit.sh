@@ -265,6 +265,10 @@ while getopts "${optstring}" arg; do
                 git config core.mergeoptions --no-edit
                 # Setting host key check to no so git won't ask for user input to validate new server identity
                 git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
+                # Setting pager to cat to avoid user interaction
+                git config core.pager cat
+                # TODO: look at https://gist.github.com/tdd/470582
+                # and https://gist.github.com/pksunkara/988716
                 cd "${init_folder}"
             done
             ;;
