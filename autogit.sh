@@ -131,6 +131,10 @@ commit_local_changes(){
     #fi
 }
 
+first_version_greater() {
+    [  "$1" = "`echo -e "$1\n$2" | sort -V | head -n1`" ]
+}
+
 #########################################################
 #                    Syntax check
 #########################################################
@@ -362,13 +366,7 @@ while getopts "${optstring}" arg; do
 
                 # If there is any kind of changes in the working tree
                 if [[ -n `git status -s` ]]; then
-                    git_stash_args=""
-                    # Adding untracked files if specified
-                    if [[ "${git_add_untracked}" = true ]]; then
-                        echo "[INFO] Adding untracked files"
-                        git add .
-                        git_stash_args="--include-untracked"
-                    fi
+                    
                     echo "[INFO] Locally changed files:"
                     git status -s
 
@@ -377,7 +375,8 @@ while getopts "${optstring}" arg; do
 
                         # Save stash
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
-                        if ! git stash save ${git_stash_args} "${commit_and_stash_name}"; then
+                        if ! git stash save "${commit_and_stash_name}"; then
+                            if [ "error: unknown option" ~= 
                             # Get conflicting files list
                             conflicting_files=`git diff --name-only --diff-filter=U`
                             if [[ -n "${conflicting_files}" ]]; then
@@ -408,6 +407,13 @@ while getopts "${optstring}" arg; do
                                 >&2 echo "[WARNING] Your changes are not saved as stash, if 'git pull' fails, repository will be in a conflict state" 
                                 >&2 echo "[WARNING] Hit Ctrl+C now to cancel, or wait 5 seconds"
                                 sleep 5
+                            fi
+                            # git_stash_args=""
+                            # Adding untracked files if specified
+                            if [[ "${git_add_untracked}" = true ]]; then
+                                echo "[INFO] Adding untracked files"
+                                git add .
+                                # git_stash_args="--include-untracked"
                             fi
                             commit_local_changes
                         fi
