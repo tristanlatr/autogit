@@ -12,9 +12,6 @@ jobs:
           - 'ubuntu:devel'
           - 'centos:6'
           - 'centos:latest'
-        git-version:
-          - 1.7.12.4
-          - 2.27.0
 
       fail-fast: false
     runs-on: ubuntu-latest
@@ -23,8 +20,8 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install git
       run: |
-        yum update || apt-get update
-        yum install git-${{ matrix.git-version }} || apt-get install git-${{ matrix.git-version }}
+        yum -y update || apt-get -y update
+        yum -y install git || apt-get -y install git
         git --version
 
     - name: Install BATS requiremetns
