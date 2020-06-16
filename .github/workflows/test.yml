@@ -24,7 +24,7 @@ jobs:
     - name: Install git
       run: |
         yum update || apt-get update
-        yum install git-${{ git-version }} || apt-get install git-${{ git-version }}
+        yum install git-${{ matrix.git-version }} || apt-get install git-${{ git-version }}
 
     - name: Install BATS requiremetns
       run: |      
