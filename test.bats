@@ -65,7 +65,8 @@ function teardown {
 
   # Run autogit on repo 2
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge
-
+  echo $output
+  
   # Test status ok
   assert_success
 
@@ -84,12 +85,14 @@ function teardown {
   
   # Run autogit on repo 2
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge
-
+  echo $output
+  
   # Test status ok
   assert_success
 
   # Run autogit on repo 1
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
 
   # Test status ok
   assert_success
@@ -112,11 +115,13 @@ function teardown {
 
   # Run autogit on repo 1, with add untracked flag
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge -a
+  echo $output
   # Test status ok
   assert_success
 
   # Run autogit on repo 2, will pull new file
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge
+  echo $output
   # Test status ok
   assert_success
 
@@ -128,6 +133,7 @@ function teardown {
 
   # Run autogit on repo 1 to update readme
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
   # Test status ok
   assert_success
 
@@ -145,6 +151,7 @@ function teardown {
   readme1_before_merge=`cat $HERE/testing-1/test-autogit/README.md`
   # Run autogit on repo 1, to push changes
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
   # Test status ok
   assert_success
 
@@ -155,7 +162,7 @@ function teardown {
 
   # Run autogit on repo 2. will fail and roll back to previous state
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge
-
+  echo $output
   # Test status merge failed with exit code 2
   assert_failure 2
 
@@ -165,7 +172,7 @@ function teardown {
 
   # Run autogit on repo 1, should not change anything
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
-
+  echo $output
   readme1_after_merge=`cat $HERE/testing-1/test-autogit/README.md`
 
   # Test readme files didn't change
@@ -178,7 +185,7 @@ function teardown {
 
   # Run autogit on repo 1, to push changes
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
-
+  echo $output
   # Test status ok
   assert_success
 
@@ -189,7 +196,7 @@ function teardown {
 
   # Run autogit on repo 2. will overwrite server version
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-overwrite
-
+  echo $output
   # Test status ok
   assert_success
 
@@ -204,6 +211,7 @@ function teardown {
 
   # Run autogit on repo 1, to refresh changes
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
 
   readme1_after_merge=`cat $HERE/testing-1/test-autogit/README.md`
 
@@ -223,12 +231,13 @@ function teardown {
 
    # Run autogit on repo 1, to push changes
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
   # Test status ok
   assert_success
 
   # Run autogit on repo 2. Will stash local version and update with upstream
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-or-stash
-
+  echo $output
   # Test the output contains 
   # [[ "$output" =~ "Merge failed. Reseting to last commit" ]]
   # [[ "$output" =~ "Your changes are saved as git stash" ]]
@@ -243,6 +252,7 @@ function teardown {
 
   # Run autogit repo 1, should not change anything
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
   # Test status ok
   assert_success
   readme1_after_merge=`cat $HERE/testing-1/test-autogit/README.md`
@@ -262,17 +272,19 @@ function teardown {
 
   # Run autogit on repo 1, to push changes
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
   # Test status ok
   assert_success
 
   # Run autogit on repo 2. Will stry to merge and leave the repo in a conflict
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-or-fail
-
+  echo $output
   # Test status merge failed
   assert_failure 2
 
   # Run autogit on repo 2. Will stry to merge and leave the repo in a conflict
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge
+  echo $output
 
   # Test status in a middle of a merge
   assert_failure 7
@@ -289,12 +301,13 @@ function teardown {
 
   # Run autogit on repo 1, to push changes
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
   # Test status ok
   assert_success
 
   # Run autogit on repo 2. Will try to merge and leave the repo in a new branch
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-or-branch
-  # echo $output >&3
+  echo $output
   # Test status ok
   assert_success
 
@@ -311,6 +324,7 @@ function teardown {
 
   # Run autogit on repo 1, should not change anything
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
   # echo $output >&3
   readme1_after_merge=`cat $HERE/testing-1/test-autogit/README.md`
   # Test readme files the same before and after merge
@@ -318,7 +332,7 @@ function teardown {
 
   # Run autogit on repo2 to swich to master branch
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -b master -u merge
-  # echo $output >&3
+  echo $output
   # Test status merge ok
   assert_success
 
@@ -330,7 +344,7 @@ function teardown {
   # Come back to new branch and test file content
   # Run autogit on repo2 to reswich to new branch
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -b $new_branch -u merge
-  # echo $output >&3
+  echo $output
   # Test status merge failed
   assert_success
 
@@ -347,7 +361,8 @@ function teardown {
   echo "New line in readme" >> $HERE/testing-1/test-autogit/README.md
   
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -b another_branch
-  
+  echo $output
+
   assert_failure 6
   
 }
@@ -376,6 +391,7 @@ function teardown {
       # Writing a line to readme file 1
       echo "New line $i in readme" >> $HERE/testing-1/test-autogit/README.md
       run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge 
+      echo $output
       assert_success
   done
   
@@ -384,8 +400,8 @@ function teardown {
   assert [ `git stash list | wc -l` = "10" ]
   
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
+  echo $output
   assert_success
-  echo $output 
   assert [ `git stash list | wc -l` = "5" ]
   
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
