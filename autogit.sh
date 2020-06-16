@@ -544,7 +544,6 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Cleaning stashes from $folder"
                         # Dropping stashes from the oldest, reverse order
                         for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
-                            echo "[INFO] Dropping $stash"
                             if ! git stash drop "${stash}"
                             then
                                 stash_name=`git stash list | grep "${stash}"`
@@ -572,7 +571,7 @@ while getopts "${optstring}" arg; do
                 echo "[INFO] Tracked files ${folder}"
                 git ls-tree --full-tree -r --name-only HEAD
                 echo "[INFO] Last ${OPTARG} commits activity ${folder}"
-                git --no-pager log -n ${OPTARG} --graph                
+                git --no-pager log --graph --date=relative --pretty=tformat:'%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%an %ad)%Creset' -n ${OPTARG}                
                 echo "[INFO] Git status ${folder}"
                 git status
                 cd "${init_folder}"
