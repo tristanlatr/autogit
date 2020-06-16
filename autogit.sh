@@ -263,10 +263,18 @@ while getopts "${optstring}" arg; do
                 echo "[INFO] Repository $folder is on branch ${branch}"
                 # Setting no edit merge option so git won't open editor and accept default merge message if any, when doing git pull
                 git config core.mergeoptions --no-edit
-                # Setting host key check to no so git won't ask for user input to validate new server identity
+                # Setting host key check to no so git won't ask for user input to validate server identity
                 git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
-                # Setting pager to cat to avoid user interaction
+                # Setting pager to cat to avoid less paging
                 git config core.pager cat
+                # Don't consider trailing space change as a cause for merge conflicts
+                git config core.whitespace -trailing-space
+                # Use abbrev SHAs whenever possible/relevant instead of full 40 chars
+                git config log.abbrevCommit true
+                # Enable colors in color-supporting terminals
+                git config color.ui auto
+
+
                 # TODO: look at https://gist.github.com/tdd/470582
                 # and https://gist.github.com/pksunkara/988716
                 cd "${init_folder}"
