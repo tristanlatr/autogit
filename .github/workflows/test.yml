@@ -12,11 +12,20 @@ jobs:
           - 'ubuntu:devel'
           - 'centos:6'
           - 'centos:latest'
+        git-version:
+          - 1.7.12.4
+          - 2.27.0
+
       fail-fast: false
     runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     steps:
     - uses: actions/checkout@v1
+    - name: Install git
+      run: |
+        yum update || apt-get update
+        yum install git-${{ git-version }} || apt-get install git-${{ git-version }}
+
     - name: Install BATS requiremetns
       run: |      
         git clone https://github.com/bats-core/bats-core.git
