@@ -6,12 +6,20 @@ jobs:
     strategy:
       matrix:
         container:
-          - 'debian:7'
-          - 'debian:testing'
+          - 'debian:8'
+          - 'debian:9'
+          - 'debian:10'
           - 'ubuntu:14.04'
-          - 'ubuntu:devel'
+          - 'ubuntu:16.04'
+          - 'ubuntu:18.04'
+          - 'ubuntu:20.04'
+          - 'oraclelinux:6'
+          - 'oraclelinux:7'
+          - 'oraclelinux:8'
           - 'centos:6'
-          - 'centos:latest'
+          - 'centos:7'
+          - 'centos:8'
+          - 'alpine:latest'
 
       fail-fast: false
     runs-on: ubuntu-latest
