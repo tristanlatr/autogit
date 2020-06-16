@@ -267,8 +267,6 @@ while getopts "${optstring}" arg; do
                 git config core.sshCommand 'ssh -o StrictHostKeyChecking=no'
                 # Setting pager to cat to avoid less paging
                 git config core.pager cat
-                # Don't consider trailing space change as a cause for merge conflicts
-                git config core.whitespace -trailing-space
                 # Use abbrev SHAs whenever possible/relevant instead of full 40 chars
                 git config log.abbrevCommit true
                 # Enable colors in color-supporting terminals
