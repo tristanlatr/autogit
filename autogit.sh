@@ -273,10 +273,8 @@ while getopts "${optstring}" arg; do
                 git config log.abbrevCommit true
                 # Enable colors in color-supporting terminals
                 git config color.ui auto
-
-
-                # TODO: look at https://gist.github.com/tdd/470582
-                # and https://gist.github.com/pksunkara/988716
+                # Configs from https://gist.github.com/tdd/470582 and https://gist.github.com/pksunkara/988716
+                
                 cd "${init_folder}"
             done
             ;;
@@ -516,16 +514,13 @@ while getopts "${optstring}" arg; do
                 #       Push changes to current branch   
                 #########################################################
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
-                changed_files=`git diff --stat --cached ${git_remote}/${branch} -- 2>/dev/null || echo 1`
 
                 if [[ "${strategy}" =~ "merge" ]]; then
-                    if [[ -n "${changed_files}" ]]; then
+                    if [[ -n `git log @{push}..` ]]; then
                         if [[ $read_only = true ]]; then
                             echo "[INFO] Read only: would have push changes"
                         else
                             echo "[INFO] Pushing changes"
-                            echo "[INFO] Changed files:"
-                            echo "${changed_files}"
                             with_ssh_key git push -u ${git_remote} ${branch}
                             with_ssh_key git fetch --quiet
                         fi
@@ -579,11 +574,11 @@ while getopts "${optstring}" arg; do
             for folder in ${repositories}; do
                 cd $folder
                 echo "[INFO] Branches ${folder}"
-                git --no-pager branch -a -vv        
+                git branch -a -vv
                 echo "[INFO] Tracked files ${folder}"
                 git ls-tree --full-tree -r --name-only HEAD
                 echo "[INFO] Last ${OPTARG} commits activity ${folder}"
-                git --no-pager log --graph --date=relative --pretty=tformat:'%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%an %ad)%Creset' -n ${OPTARG}                
+                git log --graph --date=relative --pretty=tformat:'%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%an %ad)%Creset' -n ${OPTARG}                
                 echo "[INFO] Git status ${folder}"
                 git status
                 cd "${init_folder}"
