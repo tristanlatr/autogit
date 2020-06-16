@@ -2,21 +2,28 @@ name: test
 on: push
 jobs: 
   test:
-    name: ${{ matrix.os }}
-    runs-on: ${{ matrix.os }} 
+    name: ${{ matrix.container }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        container:
+          - 'debian:7'
+          - 'debian:testing'
+          - 'ubuntu:14.04'
+          - 'ubuntu:devel'
+          - 'centos:6'
+          - 'centos:latest'
       fail-fast: false
+    runs-on: ubuntu-latest
+    container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v1
-      - name: Install BATS requiremetns
-        run: |      
-          git clone https://github.com/bats-core/bats-core.git
-          cd bats-core && ./install.sh $HOME && cd ..
-          git clone https://github.com/ztombol/bats-support
-          git clone https://github.com/ztombol/bats-assert
+    - uses: actions/checkout@v1
+    - name: Install BATS requiremetns
+      run: |      
+        git clone https://github.com/bats-core/bats-core.git
+        cd bats-core && ./install.sh $HOME && cd ..
+        git clone https://github.com/ztombol/bats-support
+        git clone https://github.com/ztombol/bats-assert
 
-      - name: Run tests
-        run: $HOME/bin/bats ./test.bats
+    - name: Run tests
+      run: $HOME/bin/bats ./test.bats
 
