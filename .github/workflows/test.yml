@@ -30,11 +30,9 @@ jobs:
       run: |
         yum update || apt-get update || apk update
 	yum -y install git || apt-get -y install git || apk add git
-        git --version
 
     - name: Git version
       run: |
-        
         git --version
 
     - name: Install BATS requiremetns
