@@ -65,7 +65,7 @@ git_remote=origin
 # SCRIPT VARIABLES
 # See help '-h' for more informations
 optstring="hqnok:x:c:m:f:ar:b:t:u:i:s:"
-host=`hostname`
+host=`cat /etc/hostname`
 init_folder=`pwd`
 date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
 commit_and_stash_name="[autogit] Changes on ${host} ${date_time_str}"
