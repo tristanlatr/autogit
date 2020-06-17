@@ -376,7 +376,6 @@ while getopts "${optstring}" arg; do
                         # Save stash
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
                         if ! git stash save "${commit_and_stash_name}"; then
-                            if [ "error: unknown option" ~= 
                             # Get conflicting files list
                             conflicting_files=`git diff --name-only --diff-filter=U`
                             if [[ -n "${conflicting_files}" ]]; then
