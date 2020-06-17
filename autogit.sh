@@ -370,16 +370,15 @@ while getopts "${optstring}" arg; do
                     echo "[INFO] Locally changed files:"
                     git status -s
 
+                    # Adding untracked files if specified
+                    if [[ "${git_add_untracked}" = true ]]; then
+                        echo "[INFO] Adding untracked files"
+                        git add `git ls-files -o`
+                    fi
+
                     # If staged or unstaged changes in the tracked files in the working tree
                     if is_changes_in_tracked_files; then
                     
-                        # Adding untracked files if specified
-                        if [[ "${git_add_untracked}" = true ]]; then
-                            echo "[INFO] Adding untracked files"
-                            git add `git ls-files -o`
-                            # git_stash_args="--include-untracked"
-                        fi
-
                         # Save stash
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
                         if ! git stash save "${commit_and_stash_name}"; then
