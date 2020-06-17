@@ -372,10 +372,17 @@ while getopts "${optstring}" arg; do
 
                     # If staged or unstaged changes in the tracked files in the working tree
                     if is_changes_in_tracked_files; then
+                    
+                        # Adding untracked files if specified
+                        if [[ "${git_add_untracked}" = true ]]; then
+                            echo "[INFO] Adding untracked files"
+                            git add `git ls-files -o`
+                            # git_stash_args="--include-untracked"
+                        fi
 
                         # Save stash
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
-                        if ! git stash save "${commit_and_stash_name}"; then
+                        if ! git stash "${commit_and_stash_name}"; then
                             # Get conflicting files list
                             conflicting_files=`git diff --name-only --diff-filter=U`
                             if [[ -n "${conflicting_files}" ]]; then
@@ -407,13 +414,7 @@ while getopts "${optstring}" arg; do
                                 >&2 echo "[WARNING] Hit Ctrl+C now to cancel, or wait 5 seconds"
                                 sleep 5
                             fi
-                            # git_stash_args=""
-                            # Adding untracked files if specified
-                            if [[ "${git_add_untracked}" = true ]]; then
-                                echo "[INFO] Adding untracked files"
-                                git add -A -- .
-                                # git_stash_args="--include-untracked"
-                            fi
+                            
                             commit_local_changes
                         fi
                     else
