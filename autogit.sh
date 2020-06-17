@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Git automatic administration script
 
 # MIT License
@@ -411,7 +411,7 @@ while getopts "${optstring}" arg; do
                             # Adding untracked files if specified
                             if [[ "${git_add_untracked}" = true ]]; then
                                 echo "[INFO] Adding untracked files"
-                                git add .
+                                git add -A -- .
                                 # git_stash_args="--include-untracked"
                             fi
                             commit_local_changes
