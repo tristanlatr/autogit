@@ -55,13 +55,13 @@ git_clone_url=""
 commit_msg_text=""
 # Will read second message from file. Option [-f <>] 
 commit_msg_from_file=""
-# Add untracked files to git: true/false. Option [-a]
-git_add_untracked=false
-# Quiet: true/false. Option [-q]
-is_quiet=false
+# Add untracked files to git: true(0)/false(1). Option [-a]
+git_add_untracked=1
+# Quiet: Option [-q]
+is_quiet=1
 # Read only: If set to true equivalent to (repository) read-only: no commit or push changes. [-o]
 # Will still pull and merge remote changes into working copy!
-read_only=false
+read_only=1
 # Git remote [-x <>]
 git_remote=origin
 
@@ -133,14 +133,11 @@ is_changes_in_tracked_files(){
 }
 # Usage: commit_local_changes
 commit_local_changes(){
-    #if [[ $read_only = false ]]; then
     echo "[INFO] Committing changes"
     git add -u
     echo -e "${commit_msg_text}\n" "${commit_msg_from_file}\n" "${commit_and_stash_name}" > /tmp/commit-msg.txt
     git commit -F /tmp/commit-msg.txt
-    #elif [[ $read_only = true ]]; then
-    #    echo "[INFO] Read only: would have commit changes: ${commit_and_stash_name}"
-    #fi
+
 }
 
 first_version_greater() {
@@ -183,12 +180,12 @@ exec 6>&1
 while getopts "${optstring}" arg; do
     case "${arg}" in
         q)
-            is_quiet=true
+            is_quiet=0
             ;;
     esac
 done
 OPTIND=1
-if [[ "${is_quiet}" = true ]]; then
+if [[ ${is_quiet} -eq 0 ]]; then
     # Redirect stdout to /dev/null
     exec > /dev/null
 fi
@@ -232,10 +229,10 @@ while getopts "${optstring}" arg; do
             commit_msg_text="${OPTARG}"
             ;;
         a)
-            git_add_untracked=true
+            git_add_untracked=0
             ;;
         o)
-            read_only=true
+            read_only=0
             ;;
         x)
             git_remote="${OPTARG}"
@@ -372,7 +369,7 @@ while getopts "${optstring}" arg; do
                 cd $folder
                 echo "[INFO] Updating ${folder}"
 
-                committed_changes=false
+                committed_changes=1
 
                 #########################################################
                 #              Saving changes as stash
@@ -385,7 +382,7 @@ while getopts "${optstring}" arg; do
                     git status -s
 
                     # Adding untracked files if specified
-                    if [[ "${git_add_untracked}" = true ]]; then
+                    if [[ ${git_add_untracked} -eq 0 ]]; then
                         echo "[INFO] Adding untracked files"
                         git add `git ls-files -o`
                     fi
@@ -429,7 +426,7 @@ while getopts "${optstring}" arg; do
                             fi
                             
                             commit_local_changes
-                            committed_changes=true
+                            committed_changes=0
                         fi
                     else
                         echo "[INFO] No local changes in tracked files"
@@ -538,9 +535,9 @@ while getopts "${optstring}" arg; do
 
                 if [[ "${strategy}" =~ "merge" ]]; then
                     # If commits are ready to be pushed       
-                    if [[ $committed_changes = true ]]; then
+                    if [[ $committed_changes -eq 0 ]]; then
 
-                        if [[ $read_only = true ]]; then
+                        if [[ $read_only -eq 0 ]]; then
                             echo "[INFO] Read only: would have push changes"
                         else
                             echo "[INFO] Pushing changes"
