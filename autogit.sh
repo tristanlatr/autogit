@@ -69,11 +69,11 @@ git_remote=origin
 # See help '-h' for more informations
 optstring="hqnok:x:c:m:f:ar:b:t:u:i:s:"
 # Dertermine hostname
-host="localhost"
+host="Unknown"
 if [[ -e "/etc/hostname" ]]; then
     host=`cat /etc/hostname`
 else
-    if which -s hostname; then
+    if which hostname > /dev/null; then
         host=`hostname`
     fi
 fi
@@ -372,6 +372,8 @@ while getopts "${optstring}" arg; do
                 cd $folder
                 echo "[INFO] Updating ${folder}"
 
+                committed_changes=false
+
                 #########################################################
                 #              Saving changes as stash
                 #########################################################
@@ -427,6 +429,7 @@ while getopts "${optstring}" arg; do
                             fi
                             
                             commit_local_changes
+                            committed_changes=true
                         fi
                     else
                         echo "[INFO] No local changes in tracked files"
@@ -534,8 +537,8 @@ while getopts "${optstring}" arg; do
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
 
                 if [[ "${strategy}" =~ "merge" ]]; then
-                    # If commits are ready to be pushed or that remote branch do not exist yet: push changes          
-                    if [[ -n `git rev-list -1 ${git_remote}/${branch}..HEAD | wc -l` ]] || [[ -z `git ls-remote --heads ${git_remote} ${branch}` ]]; then
+                    # If commits are ready to be pushed       
+                    if [[ $committed_changes = true ]]; then
 
                         if [[ $read_only = true ]]; then
                             echo "[INFO] Read only: would have push changes"
