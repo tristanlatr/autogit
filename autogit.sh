@@ -418,7 +418,7 @@ while getopts "${optstring}" arg; do
                                 echo "[INFO] Applying stash in order to merge"
                                 git stash apply --quiet stash@{0}
                             else
-                                >&2 echo "[WARNING] Your changes are not saved as stash, if 'git pull' fails, repository will be in a conflict state" 
+                                >&2 echo "[WARNING] Your changes are not saved as stash " 
                                 >&2 echo "[WARNING] Hit Ctrl+C now to cancel, or wait 5 seconds"
                                 sleep 5
                             fi
