@@ -368,18 +368,58 @@ function teardown {
 
 @test "Test read-only" {
   # Tests that no commit get pushed with -o option
+  # Writing a first line to readme file 1
+  echo "New file in repository" > $HERE/testing-1/test-autogit/new_file.md
+
+  # Writing a second line to readme file 2
+  echo "New line in readme" >> $HERE/testing-2/test-autogit/README.md
+
+  # Run autogit on repo 1, with add untracked flag
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge -a
+  echo $output
+  # Test status ok
+  assert_success
+
+  # Run autogit on repo 2, will pull new file
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge -o
+  echo $output
+  # Test status ok
+  assert_success
+
+  new_file1=`cat $HERE/testing-1/test-autogit/new_file.md`
+  new_file2=`cat $HERE/testing-2/test-autogit/new_file.md`
+
+  # Test merge ok
+  assert [ "$new_file1" = "$new_file2" ]
+
+  readme1_before_merge=`cat $HERE/testing-1/test-autogit/README.md`
+
+  # Run autogit on repo 1 to update readme, 
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
+  # Test status ok
+  assert_success
+
+  readme1_after_merge=`cat $HERE/testing-1/test-autogit/README.md`
+
+  # See that the readme is not updated cause of read-only
+  assert [ "$readme1_before_merge" = "$readme1_after_merge" ]
+
+  
 }
 
 @test "Test repo init" {
   # Test -c flag
-}
+  
+  run $HERE//autogit.sh -c git@github.com:mfesiem/msiempy.git -r ./msiempy/ -b develop
+  echo $output
+  # Test status ok
+  assert_success
+  cd msiempy
+  git checkout master
+  cd ..
+  rm -rf msiempy
 
-@test "Test stash" {
-  # test stash strategy
-}
-
-@test "Test reset" {
-  # Test -t flag
 }
 
 @test "Test clear stashes" {
@@ -416,18 +456,6 @@ function teardown {
   assert_success
   assert [ -z `git stash list` ]
   
-}
-
-@test "Test show informations" {
-  # Test -i flag
-}
-
-@test "Test different remote" {
-  
-}
-
-@test "Test fatal error" {
-
 }
 
 @test "Test merge-overwrite fails because of wrong manual work then merge-or-branch success" {
