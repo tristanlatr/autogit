@@ -38,6 +38,9 @@ HERE="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
 set -euo pipefail
 IFS=$'\n\t,'
 
+# Script version
+version='1.1'
+
 # SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q] [-o] [-x <>]
 # You can set default values here
 # Repositories: Default repositorie(s). Option  -r <>
@@ -532,7 +535,7 @@ while getopts "${optstring}" arg; do
 
                 if [[ "${strategy}" =~ "merge" ]]; then
                     # If commits are ready to be pushed or that remote branch do not exist yet: push changes          
-                    if [[ -n `git rev-list -1 ${git_remote}/${branch}..${branch} | wc -l` ]] || [[ -z `git ls-remote --heads ${git_remote} ${branch}` ]]; then
+                    if [[ -n `git rev-list -1 ${git_remote}/${branch}..HEAD | wc -l` ]] || [[ -z `git ls-remote --heads ${git_remote} ${branch}` ]]; then
 
                         if [[ $read_only = true ]]; then
                             echo "[INFO] Read only: would have push changes"
