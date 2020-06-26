@@ -453,8 +453,8 @@ function teardown {
   echo $output
   # Test status merge failed
   assert_failure 2
-
-  readme1_before_merge_overwrite=`cat $HERE/testing-1/test-autogit/readme.md`
+  
+  readme1_before_merge_overwrite=`cat $HERE/testing-1/test-autogit/README.md`
 
   # Try with merge-overwrite
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge-overwrite
@@ -462,7 +462,7 @@ function teardown {
   # Test status merge failed
   assert_failure 2
 
-  readme1_after_merge_overwrite=`cat $HERE/testing-1/test-autogit/readme.md`
+  readme1_after_merge_overwrite=`cat $HERE/testing-1/test-autogit/README.md`
 
   # Test git merge --abort actually rolled back changes
   assert [ "$readme1_before_merge_overwrite" = "$readme1_after_merge_overwrite" ]
@@ -473,7 +473,7 @@ function teardown {
   assert_success
   assert_output --partial '[WARNING] Repository is on a new branch'
 
-  readme1_after_merge_or_branch=`cat $HERE/testing-1/test-autogit/readme.md`
+  readme1_after_merge_or_branch=`cat $HERE/testing-1/test-autogit/README.md`
 
   # Test everything normal
   assert [ "$readme1_before_merge_overwrite" = "$readme1_after_merge_overwrite" ]
@@ -487,7 +487,7 @@ function teardown {
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-or-stash -b ${branch}
   echo $output
 
-  readme2_after_merge=`cat $HERE/testing-2/test-autogit/readme.md`
+  readme2_after_merge=`cat $HERE/testing-2/test-autogit/README.md`
 
   # Test readme files the same accros repos
   assert [ "$readme1_before_merge_overwrite" = "$readme2_after_merge" ]
