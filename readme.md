@@ -15,7 +15,7 @@ Principal options:
   - `merge-overwrite` -> **Keep local changes if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll back changes, pull and re-apply saved changes by accepting only local changes (overwrite), commit and push to remote. Warning, the overwrite will fail if previous commit is also in conflict with remote, and exit with code `2`
   - `merge-or-stash` -> **Keep remote changes if conflicts**. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash).  
   - `merge-or-branch` -> **Create a new remote branch if conflicts**. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote **leaving the repository in a new branch**. 
-  - `merge-or-fail` -> **Leave the reposity as is if conflicts**. Save changes as stash (if-any). Warning: this step can fail, the sctipt will continue without saving the stash. Commit, pull and push. If pull fails, leave the git repositiry in a conflict state and exit with code `2`.
+  - `merge-or-fail` -> **Leave the reposity as is if conflicts**. Save changes as stash (if-any). Warning: this step can fail, the sctipt will continue without saving the stash. Commit, pull and push. If pull fails, abort merge and exit with code `2`.
   - `stash` -> **No conflicts possible, always discard local changes**. Always update from remote. Stash the changes and pull. Do not require a write acces to git server.  
 
 Automatic update configuration, to use with `-u <Strategy>` (applied to all repositories) :
