@@ -44,7 +44,7 @@ Update `portal-conf` repository with the `bitbucket` SSH key.
 
 Hard reset the `portal-conf` repository to the specified commit.  
 ```bash
-./autogit.sh -r ~/isrm-portal-conf/ -t 00a3a3f
+./autogit.sh -r ~/portal-conf/ -t 00a3a3f
 ````
 
 Clone `msiempy` repository from github and checkout `develop` branch
