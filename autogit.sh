@@ -390,7 +390,7 @@ while getopts "${optstring}" arg; do
                             fi
                             if [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
                                 >&2 echo "[ERROR] Unable to save stash, repository is probably in a conflict state" 
-                                >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to revious commit" 
+                                >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
                                 >&2 echo "[ERROR] Use '-u merge-or-fail' to continue and pull changes even if 'git stash' fails"
                                 >&2 echo "[ERROR] Or solve conflicts manually from ${host}" 
                                 exit 7
@@ -456,7 +456,7 @@ while getopts "${optstring}" arg; do
                             git merge --abort
                             git stash apply --quiet stash@{0}
                             >&2 echo "[ERROR] Use '-u merge-or-branch' to push changes to new remote branch"
-                            >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to revious commit" 
+                            >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
                             >&2 echo "[ERROR] Or solve conflicts manually from ${host}" 
                             >&2 echo "[ERROR] Merge overwrite failed, nothing should have changed" 
                             exit 2
@@ -494,7 +494,7 @@ while getopts "${optstring}" arg; do
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
                         >&2 echo "[ERROR] Merge failed. Aborting merge."
                         git merge --abort
-                        >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to revious commit" 
+                        >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
                         >&2 echo "[ERROR] Or solve conflicts manually from ${host}"
                         exit 2
                     
@@ -508,7 +508,7 @@ while getopts "${optstring}" arg; do
                         >&2 echo "[ERROR] Use '-u merge-overwrite' to overwrite remote content"
                         >&2 echo "[ERROR] Use '-u merge-or-branch' to push changes to new remote branch"
                         >&2 echo "[ERROR] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
-                        >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to revious commit" 
+                        >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
                         >&2 echo "[ERROR] Merge failed, nothing changed." 
                         exit 2
                     fi
