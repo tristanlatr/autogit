@@ -411,7 +411,7 @@ function teardown {
 @test "Test repo init" {
   # Test -c flag
   
-  run $HERE//autogit.sh -c git@github.com:mfesiem/msiempy.git -r ./msiempy/ -b develop
+  run $HERE//autogit.sh -c "https://github.com/mfesiem/msiempy.git" -r ./msiempy/ -b develop
   echo $output
   # Test status ok
   assert_success
