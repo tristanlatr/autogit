@@ -439,7 +439,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
-                        with_ssh_key git pull
+                        with_ssh_key git pull ${git_remote} ${branch}
                     
                     #########################################################
                     #     merge-overwrite conflict resolution strategy
