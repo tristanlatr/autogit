@@ -105,7 +105,7 @@ function teardown {
 
 }
 
-@test "Test both edited no conflicts" {
+@test "Test both changed with add untracked no conflicts" {
 
   # Writing a first line to readme file 1
   echo "New file in repository" > $HERE/testing-1/test-autogit/new_file.md
@@ -200,10 +200,6 @@ function teardown {
   # Test status ok
   assert_success
 
-  # Test the output contains 
-  # [[ "$output" =~ "Merge failed. Reseting to last commit" ]]
-  # [[ "$output" =~ "Overwriting conflicted files with local changes" ]]
-
   readme2_after_merge=`cat $HERE/testing-2/test-autogit/README.md`
 
   # Test readme files on local repo 2 are the same
@@ -229,7 +225,7 @@ function teardown {
   readme1_before_merge=`cat $HERE/testing-1/test-autogit/README.md`
   readme2_before_merge=`cat $HERE/testing-2/test-autogit/README.md`
 
-   # Run autogit on repo 1, to push changes
+  # Run autogit on repo 1, to push changes
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
   echo $output
   # Test status ok
@@ -276,18 +272,23 @@ function teardown {
   # Test status ok
   assert_success
 
-  # Run autogit on repo 2. Will stry to merge and leave the repo in a conflict
+  # Run autogit on repo 2. Will try to merge
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-or-fail
   echo $output
   # Test status merge failed
   assert_failure 2
 
-  # Run autogit on repo 2. Will stry to merge and leave the repo in a conflict
+  readme2_after_merge=`cat $HERE/testing-2/test-autogit/README.md`
+
+  # Test readme files are unchanged
+  assert [ "$readme2_before_merge" = "$readme2_after_merge" ]
+
+  # Run autogit on repo 2.
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge
   echo $output
 
-  # Test status in a middle of a merge
-  assert_failure 7
+  # Test status failure
+  assert_failure 2
 }
 
 @test "Test conflicts with merge-or-branch" {
@@ -354,18 +355,17 @@ function teardown {
   assert [ "$readme2_before_merge" = "$readme2_end" ]
 }
 
-@test "Test checkout" {
+@test "Test checkout impossible because of changed files" {
   # Tests checkout inmpossible because of changed files
 
   # Writing a second line to readme file 1
   echo "New line in readme" >> $HERE/testing-1/test-autogit/README.md
-  
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -b another_branch
   echo $output
-
   assert_failure 6
   
 }
+
 @test "Test read-only" {
   # Tests that no commit get pushed with -o option
 }
@@ -391,29 +391,29 @@ function teardown {
       # Writing a line to readme file 1
       echo "New line $i in readme" >> $HERE/testing-1/test-autogit/README.md
       run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge 
-      echo $output
       assert_success
   done
   
   cd $HERE/testing-1/test-autogit
-  
+  # Test stashes are beeing created
   assert [ `git stash list | wc -l` = "10" ]
   
+  # Test 5 stash are left
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
   echo $output
   assert_success
   assert [ `git stash list | wc -l` = "5" ]
   
-  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5 
+  # Test 5 stash are still left
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 5
   echo $output 
   assert_success
-  
   assert [ `git stash list | wc -l` = "5" ]
   
+  # Test all stash dropped
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -s 0 
   echo $output
   assert_success
-  
   assert [ -z `git stash list` ]
   
 }
@@ -427,9 +427,69 @@ function teardown {
 }
 
 @test "Test fatal error" {
-  
+
 }
 
-@test "Test merge-overwrite fails then merge-or-branch success" {
-  
+@test "Test merge-overwrite fails because of wrong manual work then merge-or-branch success" {
+
+  # Commit some changes on repo 2 
+  echo "Some comments in readme" >> $HERE/testing-2/test-autogit/README.md
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge
+  echo $output
+  # Test status ok
+  assert_success
+
+  # Silumate wrong manual local work on the repo 1
+  # It's wrong because branch is in a conflict and not beeing addressed by merging with remote branch
+  cd $HERE/testing-1/test-autogit
+  echo -e "Replace the content with updated version all in one. \nLike a manual upgrade of config files or something..." > README.md
+  git commit -a -m "Important update"
+  git status
+  cd $HERE
+
+  # Simulate normal work on repo 1, then call autogit
+  echo "Some important comments in readme" >> $HERE/testing-1/test-autogit/README.md
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
+  # Test status merge failed
+  assert_failure 2
+
+  readme1_before_merge_overwrite=`cat $HERE/testing-1/test-autogit/readme.md`
+
+  # Try with merge-overwrite
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge-overwrite
+  echo $output
+  # Test status merge failed
+  assert_failure 2
+
+  readme1_after_merge_overwrite=`cat $HERE/testing-1/test-autogit/readme.md`
+
+  # Test git merge --abort actually rolled back changes
+  assert [ "$readme1_before_merge_overwrite" = "$readme1_after_merge_overwrite" ]
+
+  # Create new branch
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge-or-branch
+  echo $output
+  assert_success
+  assert_output --partial '[WARNING] Repository is on a new branch'
+
+  readme1_after_merge_or_branch=`cat $HERE/testing-1/test-autogit/readme.md`
+
+  # Test everything normal
+  assert [ "$readme1_before_merge_overwrite" = "$readme1_after_merge_overwrite" ]
+
+  # Get branch name
+  cd $HERE/testing-1/test-autogit
+  branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
+  cd $HERE
+
+  # Checkout the new branch and refresh changes, nedd to use merge-or-stash to discard initial commit
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-or-stash -b ${branch}
+  echo $output
+
+  readme2_after_merge=`cat $HERE/testing-2/test-autogit/README.md`
+
+  # Test readme files the same accros repos
+  assert [ "$readme1_before_merge_overwrite" = "$readme2_after_merge" ]
+
 }
