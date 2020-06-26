@@ -487,7 +487,7 @@ function teardown {
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-or-stash -b ${branch}
   echo $output
 
-  readme2_after_merge=`cat $HERE/testing-2/test-autogit/README.md`
+  readme2_after_merge=`cat $HERE/testing-2/test-autogit/readme.md`
 
   # Test readme files the same accros repos
   assert [ "$readme1_before_merge_overwrite" = "$readme2_after_merge" ]
