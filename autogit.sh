@@ -65,7 +65,16 @@ git_remote=origin
 # SCRIPT VARIABLES
 # See help '-h' for more informations
 optstring="hqnok:x:c:m:f:ar:b:t:u:i:s:"
-host=`cat /etc/hostname`
+# Dertermine hostname
+host="localhost"
+if [[ -e "/etc/hostname" ]]; then
+    host=`cat /etc/hostname`
+else
+    if which -s hostname; then
+        host=`hostname`
+    fi
+fi
+
 init_folder=`pwd`
 date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
 commit_and_stash_name="[autogit] Changes on ${host} ${date_time_str}"
@@ -522,8 +531,9 @@ while getopts "${optstring}" arg; do
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
 
                 if [[ "${strategy}" =~ "merge" ]]; then
-                    # If commits are ready to be pushed or that remote branch do not exist yet: push changes
-                    if [[ -n `git log ${git_remote}/${branch}..HEAD` ]] || [[ -z `git ls-remote --heads ${git_remote} ${branch}` ]]; then
+                    # If commits are ready to be pushed or that remote branch do not exist yet: push changes          
+                    if [[ -n `git rev-list -1 ${git_remote}/${branch}..${branch} | wc -l` ]] || [[ -z `git ls-remote --heads ${git_remote} ${branch}` ]]; then
+
                         if [[ $read_only = true ]]; then
                             echo "[INFO] Read only: would have push changes"
                         else
