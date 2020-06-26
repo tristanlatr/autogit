@@ -462,7 +462,7 @@ while getopts "${optstring}" arg; do
                             # Aborting overwrite
                             >&2 echo "[ERROR] Last commit is also in conflict with remote, too much to handle"
                             >&2 echo "[ERROR] Aborting merge and re-applying stashed changes"
-                            git merge --abort
+                            git reset --merge
                             git stash apply --quiet stash@{0}
                             >&2 echo "[ERROR] Use '-u merge-or-branch' to push changes to new remote branch"
                             >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
@@ -502,7 +502,7 @@ while getopts "${optstring}" arg; do
                     #########################################################
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
                         >&2 echo "[ERROR] Merge failed. Aborting merge."
-                        git merge --abort
+                        git reset --merge
                         >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
                         >&2 echo "[ERROR] Or solve conflicts manually from ${host}"
                         exit 2
