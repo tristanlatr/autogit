@@ -39,7 +39,7 @@ set -euo pipefail
 IFS=$'\n\t,'
 
 # Script version
-version='1.1'
+version='1.2'
 
 # SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q] [-o] [-x <>]
 # You can set default values here
@@ -102,9 +102,9 @@ usage(){
     cat "$HERE/readme.md"
 }
 
-# Usage: with_ssh_key command
-with_ssh_key(){
-    # echo "[DEBUG] with_ssh_key params: $@"
+# Usage: git_command git command
+git_command(){
+    # echo "[DEBUG] git_command params: $@"
     # Need to reset the IFS temporarly to space because encapsulating git command in ssh-agent
     # Seems not to work with regular "$@" ...
     if [[ ! -z "${ssh_key}" ]] ; then
@@ -119,8 +119,16 @@ with_ssh_key(){
         fi
         IFS=$'\n\t,'
     else
-        $@
+        if ! $@; then
+            >&2 echo "[WARNING] Retrying in 5 seconds. Failed command: $@"
+            sleep 5
+            if ! $@; then
+                >&2 echo "[ERROR] Fatal error. Failed command: $@"
+                return 1
+            fi
+        fi
     fi
+    return 0
 }
 # Usage : if is_changes_in_tracked_files; then ...
 is_changes_in_tracked_files(){
@@ -257,7 +265,7 @@ while getopts "${optstring}" arg; do
                         exit 4
                     fi
                     # Fetch last commits
-                    with_ssh_key git fetch --quiet
+                    git_command git fetch --quiet
                     branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                 else
                     # Init repository
@@ -265,7 +273,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Local repository do no exist, initating it from ${git_clone_url}"
                         cd "${init_folder}"
                         cd "$(dirname ${folder})"
-                        with_ssh_key git clone ${git_clone_url}
+                        git_command git clone ${git_clone_url}
                         cd "${init_folder}" && cd "${folder}"
                         branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
                     else
@@ -440,7 +448,7 @@ while getopts "${optstring}" arg; do
                 #########################################################
                 echo "[INFO] Merging remote changes"
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
-                if ! with_ssh_key git pull ${git_remote} ${branch}
+                if ! git_command git pull ${git_remote} ${branch}
                 then
 
                     #########################################################
@@ -451,7 +459,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
-                        with_ssh_key git pull ${git_remote} ${branch}
+                        git_command git pull ${git_remote} ${branch}
                     
                     #########################################################
                     #     merge-overwrite conflict resolution strategy
@@ -460,7 +468,7 @@ while getopts "${optstring}" arg; do
                         >&2 echo "[WARNING] Merge failed. Reseting to last commit"
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
-                        if ! with_ssh_key git pull --quiet --no-commit
+                        if ! git_command git pull --quiet --no-commit
                         then
                             # Aborting overwrite
                             >&2 echo "[ERROR] Last commit is also in conflict with remote, too much to handle"
@@ -541,8 +549,8 @@ while getopts "${optstring}" arg; do
                             echo "[INFO] Read only: would have push changes"
                         else
                             echo "[INFO] Pushing changes"
-                            with_ssh_key git push -u ${git_remote} ${branch}
-                            with_ssh_key git fetch --quiet
+                            git_command git push -u ${git_remote} ${branch}
+                            git_command git fetch --quiet
                         fi
                     fi
                 fi
