@@ -39,7 +39,7 @@ set -euo pipefail
 IFS=$'\n\t,'
 
 # Script version
-version='1.2'
+version='1.3'
 
 # SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q] [-o] [-x <>]
 # You can set default values here
@@ -146,10 +146,6 @@ commit_local_changes(){
     echo -e "${commit_msg_text}\n" "${commit_msg_from_file}\n" "${commit_and_stash_name}" > /tmp/commit-msg.txt
     git commit -F /tmp/commit-msg.txt
 
-}
-
-first_version_greater() {
-    [  "$1" = "`echo -e "$1\n$2" | sort -V | head -n1`" ]
 }
 
 #########################################################
@@ -448,6 +444,11 @@ while getopts "${optstring}" arg; do
                 #########################################################
                 echo "[INFO] Merging remote changes"
                 branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
+
+                # Like git pull --no-edits but compatible with git < 1.8
+                GIT_MERGE_AUTOEDIT=no
+                export GIT_MERGE_AUTOEDIT 
+
                 if ! git_command git pull ${git_remote} ${branch}
                 then
 
