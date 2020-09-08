@@ -35,6 +35,8 @@ Other features:
 `-c <Url>`    URL of the git source. If the repo folder doesn't exist, clone it. Multiple git repository values are not supported by this feature.  
 `-q`      Be quiet, do not print anything except errors.  
 
+Git commands will be retried once if failed.  
+
 Examples :  
 
 Update `portal-conf` repository with the `bitbucket` SSH key.  
@@ -55,7 +57,7 @@ Clone `msiempy` repository from github and checkout `develop` branch
 
 Notes :
 
-This script will generate new stashes whenever called, use `-s 0` option to clear all stashes.
+This script will generate new stashes whenever called on a repo with local changes, use `-s 0` option to clear all stashes.
 
 Return codes : 
 
