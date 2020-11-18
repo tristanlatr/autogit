@@ -110,8 +110,8 @@ git_command(){
     if [[ ! -z "${ssh_key}" ]] ; then
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
-            >&2 echo "[WARNING] Retrying in 5 seconds. Failed command: $*"
-            sleep 5
+            >&2 echo "[WARNING] Retrying in a bit. Failed command: $*"
+            sleep $(( ( RANDOM % 10 ) +1 ))
             if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
                 >&2 echo "[ERROR] Fatal error. Failed command: $*"
                 return 1
@@ -120,8 +120,8 @@ git_command(){
         IFS=$'\n\t,'
     else
         if ! $@; then
-            >&2 echo "[WARNING] Retrying in 5 seconds. Failed command: $@"
-            sleep 5
+            >&2 echo "[WARNING] Retrying in a bit. Failed command: $@"
+            sleep $(( ( RANDOM % 10 ) +1 ))
             if ! $@; then
                 >&2 echo "[ERROR] Fatal error. Failed command: $@"
                 return 1
