@@ -416,7 +416,7 @@ function teardown {
   # Test status ok
   assert_success
   cd msiempy
-  git checkout master
+  git checkout main
   cd ..
   rm -rf msiempy
 
