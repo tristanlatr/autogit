@@ -262,7 +262,7 @@ while getopts "${optstring}" arg; do
                     fi
                     # Fetch last commits
                     git_command git fetch --quiet
-                    branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
+                    branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
                 else
                     # Init repository
                     if [[ ! -z "${git_clone_url}" ]]; then
@@ -271,7 +271,7 @@ while getopts "${optstring}" arg; do
                         cd "$(dirname ${folder})"
                         git_command git clone ${git_clone_url}
                         cd "${init_folder}" && cd "${folder}"
-                        branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
+                        branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
                     else
                         >&2 echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
                         exit 4
@@ -334,7 +334,7 @@ while getopts "${optstring}" arg; do
             for folder in ${repositories}; do
                 echo "[INFO] Checkout ${folder} on branch ${OPTARG}"
                 cd $folder
-                branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
+                branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
                 if [[ ! "${OPTARG}" == "${branch}" ]]; then
                     if ! is_changes_in_tracked_files; then
                         if ! git checkout -b ${OPTARG} 2>/dev/null
@@ -443,7 +443,7 @@ while getopts "${optstring}" arg; do
                 #                       Merging changes
                 #########################################################
                 echo "[INFO] Merging remote changes"
-                branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
+                branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
 
                 # Like git pull --no-edits but compatible with git < 1.8
                 GIT_MERGE_AUTOEDIT=no
@@ -540,7 +540,7 @@ while getopts "${optstring}" arg; do
                 #########################################################
                 #       Push changes to current branch   
                 #########################################################
-                branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
+                branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
 
                 if [[ "${strategy}" =~ "merge" ]]; then
                     # If commits are ready to be pushed       
