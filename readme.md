@@ -4,7 +4,10 @@ This script is designed to programmatically synchronize git repositories: pull a
 
 It should not require human intervention after launched. I use this script to automatically update configuration files synced with git across multiple servers.
 
-The key feature is that this script will roll back the repository to previous state if there is a merge conflict during pull.
+Advantages:
+- Roll back the repository to previous state if there is a merge conflict during pull
+- Tested with a variety of OSes and git versions: `1.7.1`, `1.8`, `2.x`
+- No requirements
 
 Usage summary: `autogit.sh [-h] [-k <SSH Key>] [-c <Git clone URL>] [-b <Branch>] [-u <Strategy>] [-m <Commit msg text> ] [-f <Commit msg file>] [-t <Commit hash to reset>] [-i <Number of commits to show>] [-s <Number of stash to keep>] [-a] [-q] [-x <Remote>] -r <Repository path>,[<Repository path>...]`
 
@@ -16,9 +19,9 @@ Principal options:
 `-k <Key>`    Path to a valid ssh key. Required if git authentication is not already working with default key.  
 `-u <Strategy>`   Update the current branch from and to upstream with a defined strategy. This feature supports multiple repo values.
   - `merge` -> **Restore original state if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll-back changes leaving the repo in the same state as before calling the script. Exit with code `2` if merge failed.
-  - `merge-or-branch` -> **Create a new remote branch if conflicts**. Save changes as stash (if-any), apply them, commit, pull and push, if pull fails, create a new branch and push changes to remote **leaving the repository in a new branch**. 
+  - `merge-or-branch` -> **Create a new remote branch if conflicts**. Save changes as stash (if-any), commit, pull and push, if pull fails, create a new branch and push changes to remote **leaving the repository in a new branch**. 
   - `merge-overwrite` -> **Try to overwrite with local changes if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll back changes, pull and re-apply saved changes by accepting only local changes (overwrite), commit and push to remote. Warning, the overwrite will fail if previous commit is also in conflict with remote (reset merge and exit with code `2`).
-  - `merge-or-stash` -> **Keep remote changes if conflicts**. Save changes as stash and apply them (if any), commit, pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash).  
+  - `merge-or-stash` -> **Keep remote changes if conflicts**. Save changes as stash (if-any), commit pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash).  
   - `merge-or-fail` -> **Leave the repository as is if conflicts**. Save changes as stash (if-any). Warning: this step can fail, the script will continue without saving the stash. Commit, pull and push. If pull fails, reset merge and exit with code `2`.
   - `stash` -> **No conflicts possible, always discard local changes**. Always update from remote. Stash the changes and pull. Do not require a write access to git server.
 
