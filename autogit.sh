@@ -89,7 +89,7 @@ download_docs_if_not_found(){
     if ! [[ -e "$HERE/readme.md" ]]; then
         cd $HERE
         echo "Downloading docs from the internet..."
-        wget --quiet https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md
+        curl --silent https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md > "$HERE/readme.md"
         cd $init_folder
     fi
 }
