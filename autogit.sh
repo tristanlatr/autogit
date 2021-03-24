@@ -275,7 +275,7 @@ while getopts "${optstring}" arg; do
                         cd "${init_folder}" && cd "${folder}"
                         branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
                     else
-                        >&2 echo "[ERROR] Reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
+                        >&2 echo "[ERROR] Repository $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
                         exit 4
                     fi
                 fi
