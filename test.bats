@@ -145,6 +145,46 @@ function teardown {
 
 }
 
+@test "Test both changed with add untracked no conflicts multiple repositories" {
+
+  # Writing a first line to readme file 1
+  echo "New file in repository" > $HERE/testing-1/test-autogit/new_file.md
+
+  # Writing a second line to readme file 2
+  echo "New line in readme" >> $HERE/testing-2/test-autogit/README.md
+
+  # Run autogit on repo 1 and 2 at the same time, with add untracked flag
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit,$HERE/testing-2/test-autogit -u merge -a
+  echo $output
+  # Test status ok
+  assert_success
+
+  new_file1=`cat $HERE/testing-1/test-autogit/new_file.md`
+  new_file2=`cat $HERE/testing-2/test-autogit/new_file.md`
+
+  # Test merge ok
+  assert [ "$new_file1" = "$new_file2" ]
+
+  readme1=`cat $HERE/testing-1/test-autogit/README.md`
+  readme2=`cat $HERE/testing-2/test-autogit/README.md`
+
+  # Test that the changes in readme2 did not propagate yet to readme1
+  assert [ "$readme1" != "$readme2" ]
+
+  # Run autogit on repo 1 and 2 at the same time, again, (will update repo1 only)
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit,$HERE/testing-2/test-autogit -u merge
+  echo $output
+  # Test status ok
+  assert_success
+
+  readme1=`cat $HERE/testing-1/test-autogit/README.md`
+  readme2=`cat $HERE/testing-2/test-autogit/README.md`
+
+  # Test merge ok
+  assert [ "$readme1" = "$readme2" ]
+
+}
+
 @test "Test conflicts with default merge" {
   # Writing a second line to readme file 1
   echo "New line in readme" >> $HERE/testing-1/test-autogit/README.md
@@ -468,7 +508,7 @@ function teardown {
   assert_success
 
   # Silumate wrong manual local work on the repo 1
-  # It's wrong because branch is in a conflict and not beeing addressed by merging with remote branch
+  # It's wrong because branch is in a conflict and not beeing addressed by merging with remote branch manually!
   cd $HERE/testing-1/test-autogit
   echo -e "Replace the content with updated version all in one. \nLike a manual upgrade of config files or something..." > README.md
   git commit -a -m "Important update"
