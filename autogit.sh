@@ -71,15 +71,15 @@ optstring="hqnok:x:c:m:f:ar:b:t:u:i:s:"
 # Dertermine hostname
 host="Unknown"
 if [[ -e "/etc/hostname" ]]; then
-    host=`cat /etc/hostname`
+    host=$(cat /etc/hostname)
 else
     if which hostname > /dev/null; then
-        host=`hostname`
+        host=$(hostname)
     fi
 fi
 
-init_folder=`pwd`
-date_time_str=`date +"%Y-%m-%dT%H-%M-%S"`
+init_folder=$(pwd)
+date_time_str=$(date +"%Y-%m-%dT%H-%M-%S")
 commit_and_stash_name="[autogit] Changes on ${host} ${date_time_str}"
 
 #########################################################
@@ -227,7 +227,7 @@ while getopts "${optstring}" arg; do
             git_clone_url="${OPTARG}"
             ;;
         f)
-            commit_msg_from_file=`cat "${OPTARG}"`
+            commit_msg_from_file=$(cat "${OPTARG}")
             ;;
         m)
             commit_msg_text="${OPTARG}"
@@ -380,7 +380,7 @@ while getopts "${optstring}" arg; do
                 #########################################################
 
                 # If there is any kind of changes in the working tree
-                if [[ -n `git status -s` ]]; then
+                if [[ -n $(git status -s) ]]; then
                     
                     echo "[INFO] Locally changed files:"
                     git status -s
@@ -388,7 +388,7 @@ while getopts "${optstring}" arg; do
                     # Adding untracked files if specified
                     if [[ ${git_add_untracked} -eq 0 ]]; then
                         echo "[INFO] Adding untracked files"
-                        git add `git ls-files -o`
+                        git add $(git ls-files -o)
                     fi
 
                     # If staged or unstaged changes in the tracked files in the working tree
@@ -398,7 +398,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
                         if ! git stash save "${commit_and_stash_name}"; then
                             # Get conflicting files list
-                            conflicting_files=`git diff --name-only --diff-filter=U`
+                            conflicting_files=$(git diff --name-only --diff-filter=U)
                             if [[ -n "${conflicting_files}" ]]; then
                                 >&2 echo "[WARNING] Already in the middle of a conflict with files:"
                                 echo "${conflicting_files}"
@@ -411,7 +411,7 @@ while getopts "${optstring}" arg; do
                                 exit 7
                             fi
                         else
-                            if [[ -z `git stash list | grep "${date_time_str}"` ]] && [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
+                            if [[ -z $(git stash list | grep "${date_time_str}") ]] && [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
                                 >&2 echo "[ERROR] Looks like your stash could not be saved" 
                                 >&2 echo "[ERROR] Use '-u merge-or-fail' to continue and pull changes even if 'git stash' fails"
                                 exit 8
@@ -420,7 +420,7 @@ while getopts "${optstring}" arg; do
 
                         # Apply changes if merge strategy is not stash and the stash exists
                         if [[ "${strategy}" =~ "merge" ]]; then
-                            if [[ -n `git stash list | grep "${date_time_str}"` ]]; then
+                            if [[ -n $(git stash list | grep "${date_time_str}") ]]; then
                                 echo "[INFO] Applying stash in order to merge"
                                 git stash apply --quiet stash@{0}
                             else
@@ -487,7 +487,7 @@ while getopts "${optstring}" arg; do
                         then
                             echo "[INFO] Overwriting conflicted files with local changes"
                             # Iterate list of conflicted files and choose stashed version
-                            for file in `git diff --name-only --diff-filter=U`; do
+                            for file in $(git diff --name-only --diff-filter=U); do
                                 git checkout --theirs -- ${file}
                                 git add ${file}
                             done
@@ -574,15 +574,15 @@ while getopts "${optstring}" arg; do
                 nb_stash_to_keep=${OPTARG}
                 if [[ nb_stash_to_keep -ge 0 ]]; then
                     tail_n_arg=$(( ${nb_stash_to_keep} + 1))
-                    stashes=`git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg}`
+                    stashes=$(git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg})
                     if [[ -n "${stashes}" ]]; then
-                        oldest_stash=`git stash list | grep "stash@{${nb_stash_to_keep}}"`
+                        oldest_stash=$(git stash list | grep "stash@{${nb_stash_to_keep}}")
                         echo "[INFO] Cleaning stashes from $folder"
                         # Dropping stashes from the oldest, reverse order
-                        for stash in `echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'`; do
+                        for stash in $(echo "${stashes}" | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'); do
                             if ! git stash drop "${stash}"
                             then
-                                stash_name=`git stash list | grep "${stash}"`
+                                stash_name=$(git stash list | grep "${stash}")
                                 >&2 echo "[WARNING] A stash could not be deleted: ${stash_name}"
                             fi
                         done
