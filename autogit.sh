@@ -87,10 +87,10 @@ commit_and_stash_name="[autogit] Changes on ${host} ${date_time_str}"
 #########################################################
 download_docs_if_not_found(){
     if ! [[ -e "$HERE/readme.md" ]]; then
-        cd $HERE
+        cd "$HERE"
         echo "Downloading docs from the internet..."
         curl --silent https://raw.githubusercontent.com/tristanlatr/autogit/master/readme.md > "$HERE/readme.md"
-        cd $init_folder
+        cd "$init_folder"
     fi
 }
 quick_usage(){
@@ -255,7 +255,7 @@ while getopts "${optstring}" arg; do
             for folder in ${repositories}; do
                 # Check repo exist and contains .git folder
                 if [[ -d "$folder" ]]; then
-                    cd $folder
+                    cd "$folder"
                     if [[ ! -d .git ]]; then
                         >&2 echo "[ERROR] Repository folder must contain a valid .git directory."
                         exit 4
@@ -268,8 +268,8 @@ while getopts "${optstring}" arg; do
                     if [[ ! -z "${git_clone_url}" ]]; then
                         echo "[INFO] Local repository do no exist, initating it from ${git_clone_url}"
                         cd "${init_folder}"
-                        cd "$(dirname ${folder})"
-                        git_command git clone ${git_clone_url}
+                        cd "$(dirname "${folder}")"
+                        git_command git clone "${git_clone_url}"
                         cd "${init_folder}" && cd "${folder}"
                         branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
                     else
@@ -313,8 +313,8 @@ while getopts "${optstring}" arg; do
         t) #Reseting to previous commit
             for folder in ${repositories}; do
                 echo "[INFO] Reseting ${folder} to ${OPTARG} commit"
-                cd $folder
-                git reset --hard ${OPTARG}
+                cd "$folder"
+                git reset --hard "${OPTARG}"
                 cd "${init_folder}"
                 break
             done
@@ -333,13 +333,13 @@ while getopts "${optstring}" arg; do
         b) #Checkout
             for folder in ${repositories}; do
                 echo "[INFO] Checkout ${folder} on branch ${OPTARG}"
-                cd $folder
+                cd "$folder"
                 branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
                 if [[ ! "${OPTARG}" == "${branch}" ]]; then
                     if ! is_changes_in_tracked_files; then
-                        if ! git checkout -b ${OPTARG} 2>/dev/null
+                        if ! git checkout -b "${OPTARG}" 2>/dev/null
                         then
-                            git checkout ${OPTARG}
+                            git checkout "${OPTARG}"
                         fi
                     else
                         >&2 echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." 
@@ -370,7 +370,7 @@ while getopts "${optstring}" arg; do
 
             for folder in ${repositories}; do
                 
-                cd $folder
+                cd "$folder"
                 echo "[INFO] Updating ${folder}"
 
                 committed_changes=1
@@ -449,7 +449,7 @@ while getopts "${optstring}" arg; do
                 GIT_MERGE_AUTOEDIT=no
                 export GIT_MERGE_AUTOEDIT 
 
-                if ! git_command git pull ${git_remote} ${branch}
+                if ! git_command git pull "${git_remote}" "${branch}"
                 then
 
                     #########################################################
@@ -460,7 +460,7 @@ while getopts "${optstring}" arg; do
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
-                        git_command git pull ${git_remote} ${branch}
+                        git_command git pull "${git_remote}" "${branch}"
                     
                     #########################################################
                     #     merge-overwrite conflict resolution strategy
@@ -488,8 +488,8 @@ while getopts "${optstring}" arg; do
                             echo "[INFO] Overwriting conflicted files with local changes"
                             # Iterate list of conflicted files and choose stashed version
                             for file in $(git diff --name-only --diff-filter=U); do
-                                git checkout --theirs -- ${file}
-                                git add ${file}
+                                git checkout --theirs -- "${file}"
+                                git add "${file}"
                             done
                         else
                             echo "[INFO] Git stash apply successful, no need to overwrite"
@@ -500,10 +500,10 @@ while getopts "${optstring}" arg; do
                     #     merge-or-branch conflict resolution strategy   
                     #########################################################
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
-                        conflit_branch="$(echo ${commit_and_stash_name} | tr -cd '[:alnum:]')"
+                        conflit_branch="$(echo "${commit_and_stash_name}" | tr -cd '[:alnum:]')"
                         >&2 echo "[WARNING] Merge failed. Creating a new branch ${conflit_branch}"
                         git reset --hard HEAD~1
-                        git checkout -b ${conflit_branch}
+                        git checkout -b "${conflit_branch}"
                         git stash apply --quiet stash@{0}
                         commit_local_changes
                         echo "[INFO] You changes are applied to branch ${conflit_branch}"
@@ -550,7 +550,7 @@ while getopts "${optstring}" arg; do
                             echo "[INFO] Read only: would have push changes"
                         else
                             echo "[INFO] Pushing changes"
-                            git_command git push -u ${git_remote} ${branch}
+                            git_command git push -u "${git_remote}" "${branch}"
                             git_command git fetch --quiet
                         fi
                     fi
@@ -570,7 +570,7 @@ while getopts "${optstring}" arg; do
     case "${arg}" in
         s)
             for folder in ${repositories}; do
-                cd $folder
+                cd "$folder"
                 nb_stash_to_keep=${OPTARG}
                 if [[ nb_stash_to_keep -ge 0 ]]; then
                     tail_n_arg=$(( ${nb_stash_to_keep} + 1))
@@ -601,13 +601,13 @@ while getopts "${optstring}" arg; do
     case "${arg}" in
         i)
             for folder in ${repositories}; do
-                cd $folder
+                cd "$folder"
                 echo "[INFO] Branches ${folder}"
                 git branch -a -vv
                 echo "[INFO] Tracked files ${folder}"
                 git ls-tree --full-tree -r --name-only HEAD
                 echo "[INFO] Last ${OPTARG} commits activity ${folder}"
-                git log --graph --date=relative --pretty=tformat:'%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%an %ad)%Creset' -n ${OPTARG}                
+                git log --graph --date=relative --pretty=tformat:'%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%an %ad)%Creset' -n "${OPTARG}"                
                 echo "[INFO] Git status ${folder}"
                 git status
                 cd "${init_folder}"
