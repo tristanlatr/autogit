@@ -95,7 +95,7 @@ download_docs_if_not_found(){
 }
 quick_usage(){
     download_docs_if_not_found
-    cat "$HERE/readme.md" | grep "Usage summary"
+    grep "Usage summary" "$HERE/readme.md"
 }
 usage(){
     download_docs_if_not_found
@@ -107,7 +107,7 @@ git_command(){
     # echo "[DEBUG] git_command params: $@"
     # Need to reset the IFS temporarly to space because encapsulating git command in ssh-agent
     # Seems not to work with regular "$@" ...
-    if [[ ! -z "${ssh_key}" ]] ; then
+    if [[ -n "${ssh_key}" ]] ; then
         IFS=' '
         if ! ssh-agent bash -c "ssh-add ${ssh_key} 2>&1 && $*"; then
             >&2 echo "[WARNING] Retrying in a bit. Failed command: $*"
@@ -250,14 +250,16 @@ OPTIND=1
 #########################################################
 while getopts "${optstring}" arg; do
     case "${arg}" in
-        r)            
-            repositories=${OPTARG}
-            for folder in ${repositories}; do
+        r)  
+            # Parse comma separated values since IFS includes the comma.
+            read -ra repositories <<< "${OPTARG}"
+
+            for folder in "${repositories[@]}"; do
                 # Check repo exist and contains .git folder
                 if [[ -d "$folder" ]]; then
                     cd "$folder"
                     if [[ ! -d .git ]]; then
-                        >&2 echo "[ERROR] Repository folder must contain a valid .git directory."
+                        >&2 echo "[ERROR] Folder $folder is not a git repository."
                         exit 4
                     fi
                     # Fetch last commits
@@ -265,7 +267,7 @@ while getopts "${optstring}" arg; do
                     branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
                 else
                     # Init repository
-                    if [[ ! -z "${git_clone_url}" ]]; then
+                    if [[ -n "${git_clone_url}" ]]; then
                         echo "[INFO] Local repository do no exist, initating it from ${git_clone_url}"
                         cd "${init_folder}"
                         cd "$(dirname "${folder}")"
@@ -273,7 +275,7 @@ while getopts "${optstring}" arg; do
                         cd "${init_folder}" && cd "${folder}"
                         branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
                     else
-                        >&2 echo "[ERROR] Git reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
+                        >&2 echo "[ERROR] Reposirtory $folder do not exist and '-c <URL>' is not set. Please set git server URL to be able to initiate the repo."
                         exit 4
                     fi
                 fi
@@ -311,7 +313,7 @@ fi
 while getopts "${optstring}" arg; do
     case "${arg}" in
         t) #Reseting to previous commit
-            for folder in ${repositories}; do
+            for folder in "${repositories[@]}"; do
                 echo "[INFO] Reseting ${folder} to ${OPTARG} commit"
                 cd "$folder"
                 git reset --hard "${OPTARG}"
@@ -331,7 +333,7 @@ OPTIND=1
 while getopts "${optstring}" arg; do
     case "${arg}" in
         b) #Checkout
-            for folder in ${repositories}; do
+            for folder in "${repositories[@]}"; do
                 echo "[INFO] Checkout ${folder} on branch ${OPTARG}"
                 cd "$folder"
                 branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
@@ -368,7 +370,7 @@ while getopts "${optstring}" arg; do
                 exit 3
             fi
 
-            for folder in ${repositories}; do
+            for folder in "${repositories[@]}"; do
                 
                 cd "$folder"
                 echo "[INFO] Updating ${folder}"
@@ -388,7 +390,10 @@ while getopts "${optstring}" arg; do
                     # Adding untracked files if specified
                     if [[ ${git_add_untracked} -eq 0 ]]; then
                         echo "[INFO] Adding untracked files"
-                        git add $(git ls-files -o)
+                        git ls-files -o | while read -r file
+                        do
+                            git add "$file"
+                        done
                     fi
 
                     # If staged or unstaged changes in the tracked files in the working tree
@@ -569,7 +574,7 @@ OPTIND=1
 while getopts "${optstring}" arg; do
     case "${arg}" in
         s)
-            for folder in ${repositories}; do
+            for folder in "${repositories[@]}"; do
                 cd "$folder"
                 nb_stash_to_keep=${OPTARG}
                 if [[ nb_stash_to_keep -ge 0 ]]; then
@@ -600,7 +605,7 @@ OPTIND=1
 while getopts "${optstring}" arg; do
     case "${arg}" in
         i)
-            for folder in ${repositories}; do
+            for folder in "${repositories[@]}"; do
                 cd "$folder"
                 echo "[INFO] Branches ${folder}"
                 git branch -a -vv
