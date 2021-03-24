@@ -119,11 +119,11 @@ git_command(){
         fi
         IFS=$'\n\t,'
     else
-        if ! $@; then
-            >&2 echo "[WARNING] Retrying in a bit. Failed command: $@"
+        if ! "$@"; then
+            >&2 echo "[WARNING] Retrying in a bit. Failed command:" "$@"
             sleep $(( ( RANDOM % 10 ) +1 ))
-            if ! $@; then
-                >&2 echo "[ERROR] Fatal error. Failed command: $@"
+            if ! "$@"; then
+                >&2 echo "[ERROR] Fatal error. Failed command:" "$@"
                 return 1
             fi
         fi
