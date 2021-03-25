@@ -39,7 +39,7 @@ set -euo pipefail
 IFS=$'\n\t,'
 
 # Script version
-version='1.3'
+version='1.4'
 
 # SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q] [-o] [-x <>]
 # You can set default values here
@@ -341,19 +341,18 @@ while getopts "${optstring}" arg; do
                 if [[ ! "${newbranch}" == "${branch}" ]]; then
                     if ! is_changes_in_tracked_files; then
                         # Check local branches
-                        local_branches="$(git_command git branch | sed 's/^[ ]\+//' | grep -vE 'HEAD|${branch}')"
+                        local_branches="$(git_command git branch | sed 's/^[ ]\+//' | grep -v 'HEAD')"
                         if [ -n "$(echo ${local_branches} | grep ${newbranch})" ]; then
                             echo "[INFO] Checking out local branch ${newbranch}"
                             git checkout "${newbranch}"
                             continue
                         fi
                         # Check remote branches
-                        remote_branches="$(git_command git branch -r | sed 's/^[ ]\+//' | grep -vE 'HEAD|${branch}')"
+                        remote_branches="$(git_command git branch -r | sed 's/^[ ]\+//' | grep -v 'HEAD')"
                         if [ -n "$(echo ${remote_branches} | grep ${newbranch})" ]; then
-
                             echo "[INFO] Checking out remote branch ${newbranch}"
                             git_command git fetch --quiet "${git_remote}" "${newbranch}:${newbranch}"
-                            git_command git branch --quiet -u "${git_remote}/${newbranch}" "$newbranch"
+                            git_command git branch -u "${git_remote}/${newbranch}" "$newbranch"
                             git checkout "${newbranch}"
                             continue
                         fi
