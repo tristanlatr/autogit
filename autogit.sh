@@ -333,22 +333,45 @@ OPTIND=1
 while getopts "${optstring}" arg; do
     case "${arg}" in
         b) #Checkout
+            newbranch="${OPTARG}"
             for folder in "${repositories[@]}"; do
-                echo "[INFO] Checkout ${folder} on branch ${OPTARG}"
+                echo "[INFO] Switching repository ${folder} on branch ${newbranch}"
                 cd "$folder"
                 branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
-                if [[ ! "${OPTARG}" == "${branch}" ]]; then
+                if [[ ! "${newbranch}" == "${branch}" ]]; then
                     if ! is_changes_in_tracked_files; then
-                        if ! git checkout -b "${OPTARG}" 2>/dev/null
-                        then
-                            git checkout "${OPTARG}"
+                        # Check local branches
+                        local_branches="$(git_command git branch | sed 's/^[ ]\+//' | grep -vE 'HEAD|${branch}')"
+                        if [ -n "$(echo ${local_branches} | grep ${newbranch})" ]; then
+                            echo "[INFO] Checking out local branch ${newbranch}"
+                            git checkout "${newbranch}"
+                            continue
+                        fi
+                        # Check remote branches
+                        remote_branches="$(git_command git branch -r | sed 's/^[ ]\+//' | grep -vE 'HEAD|${branch}')"
+                        if [ -n "$(echo ${remote_branches} | grep ${newbranch})" ]; then
+
+                            echo "[INFO] Checking out remote branch ${newbranch}"
+                            git_command git fetch --quiet "${git_remote}" "${newbranch}:${newbranch}"
+                            git_command git branch --quiet -u "${git_remote}/${newbranch}" "$newbranch"
+                            git checkout "${newbranch}"
+                            continue
+                        fi
+                        # Create the branch
+                        echo "[INFO] Creating a new branch ${newbranch}"
+                        git checkout -b "${newbranch}"
+                        branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
+                        if [[ $read_only -eq 0 ]]; then
+                            echo "[INFO] Read only: would have push new branch"
+                        else
+                            git_command git push -u "${git_remote}" "${branch}"
                         fi
                     else
                         >&2 echo "[ERROR] Can't checkout with changed files in working tree, please merge changes first." 
                         exit 6
                     fi
                 else
-                    echo "[INFO] Already on branch ${OPTARG}"
+                    echo "[INFO] Already on branch ${newbranch}"
                 fi
                 cd "${init_folder}"
             done
@@ -402,17 +425,19 @@ while getopts "${optstring}" arg; do
                         # Save stash
                         echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
                         if ! git stash save "${commit_and_stash_name}"; then
+                            >&2 echo "[WARNING] Unable to save stash"
                             # Get conflicting files list
                             conflicting_files=$(git diff --name-only --diff-filter=U)
                             if [[ -n "${conflicting_files}" ]]; then
                                 >&2 echo "[WARNING] Already in the middle of a conflict with files:"
                                 echo "${conflicting_files}"
+                            else
+                                >&2 echo "[WARNING] Unknow issue with the 'git stash' command"
                             fi
                             if [[ ! "${strategy}" =~ "merge-or-fail" ]]; then
-                                >&2 echo "[ERROR] Unable to save stash, repository is probably in a conflict state" 
                                 >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
                                 >&2 echo "[ERROR] Use '-u merge-or-fail' to continue and pull changes even if 'git stash' fails"
-                                >&2 echo "[ERROR] Or solve conflicts manually from ${host}" 
+                                >&2 echo "[ERROR] Or solve this issue manually from ${host}:${folder}" 
                                 exit 7
                             fi
                         else
@@ -427,7 +452,7 @@ while getopts "${optstring}" arg; do
                         if [[ "${strategy}" =~ "merge" ]]; then
                             if [[ -n $(git stash list | grep "${date_time_str}") ]]; then
                                 echo "[INFO] Applying stash in order to merge"
-                                git stash apply --quiet stash@{0}
+                                git stash apply --quiet "stash@{0}"
                             else
                                 >&2 echo "[WARNING] Your changes are not saved as stash " 
                                 >&2 echo "[WARNING] Hit Ctrl+C now to cancel, or wait 5 seconds"
@@ -461,7 +486,7 @@ while getopts "${optstring}" arg; do
                     #      merge-or-stash conflict resolution strategy
                     #########################################################
                     if [[ "${strategy}" =~ "merge-or-stash" ]]; then
-                        >&2 echo "[WARNING] Merge failed. Reseting to last commit."
+                        >&2 echo "[WARNING] Cannot auto-merge. Reseting to last commit."
                         echo "[INFO] Your changes are saved as git stash \"${commit_and_stash_name}\"" 
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
@@ -471,24 +496,25 @@ while getopts "${optstring}" arg; do
                     #     merge-overwrite conflict resolution strategy
                     #########################################################
                     elif [[ "${strategy}" =~ "merge-overwrite" ]]; then
-                        >&2 echo "[WARNING] Merge failed. Reseting to last commit"
+                        >&2 echo "[WARNING] Cannot auto-merge. Reseting to last commit"
                         git reset --hard HEAD~1
                         echo "[INFO] Pulling changes"
                         if ! git_command git pull --quiet --no-commit
                         then
-                            # Aborting overwrite
-                            >&2 echo "[ERROR] Last commit is also in conflict with remote, too much to handle"
+                            # Aborting overwrite '-u merge-overwrite' only tries to look one 
+                            # commit behind, and if that commit is also in conflict with remote, then it fails. 
+                            >&2 echo "[ERROR] Cannot merge-overwrite: Last commit is also in conflict with remote, too much to handle"
                             >&2 echo "[ERROR] Aborting merge and re-applying stashed changes"
                             git reset --merge
-                            git stash apply --quiet stash@{0}
+                            git stash apply --quiet "stash@{0}"
                             >&2 echo "[ERROR] Use '-u merge-or-branch' to push changes to new remote branch"
                             >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
-                            >&2 echo "[ERROR] Or solve conflicts manually from ${host}" 
-                            >&2 echo "[ERROR] Merge overwrite failed, nothing should have changed" 
+                            >&2 echo "[ERROR] Or merge manually from ${host}:${folder}"
+                            >&2 echo "[ERROR] Merge aborted, nothing should have changed" 
                             exit 2
                         fi
                         echo "[INFO] Applying last stash in order to merge"
-                        if ! git stash apply --quiet stash@{0}
+                        if ! git stash apply --quiet "stash@{0}"
                         then
                             echo "[INFO] Overwriting conflicted files with local changes"
                             # Iterate list of conflicted files and choose stashed version
@@ -506,36 +532,37 @@ while getopts "${optstring}" arg; do
                     #########################################################
                     elif [[ "${strategy}" =~ "merge-or-branch" ]]; then
                         conflit_branch="$(echo "${commit_and_stash_name}" | tr -cd '[:alnum:]')"
-                        >&2 echo "[WARNING] Merge failed. Creating a new branch ${conflit_branch}"
+                        >&2 echo "[WARNING] Cannot auto-merge. Creating a new branch ${conflit_branch}"
                         git reset --hard HEAD~1
                         git checkout -b "${conflit_branch}"
-                        git stash apply --quiet stash@{0}
+                        git stash apply --quiet "stash@{0}"
                         commit_local_changes
-                        echo "[INFO] You changes are applied to branch ${conflit_branch}"
+                        echo "[INFO] Your changes are applied to branch ${conflit_branch}"
                         >&2 echo "[WARNING] Repository is on a new branch"
 
                     #########################################################
                     #     merge-or-fail conflict resolution strategy   
                     #########################################################
                     elif [[ "${strategy}" =~ "merge-or-fail" ]]; then
-                        >&2 echo "[ERROR] Merge failed. Aborting merge."
-                        git reset --merge
+                        >&2 echo "[ERROR] Cannot auto-merge."
                         >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
-                        >&2 echo "[ERROR] Or solve conflicts manually from ${host}"
+                        >&2 echo "[ERROR] Or merge manually from ${host}:${folder}"
+                        git reset --merge
+                        >&2 echo "[ERROR] Merge aborted, nothing should have changed"
                         exit 2
                     
                     #########################################################
                     #     default merge conflict resolution strategy   
                     #########################################################
                     else
-                        >&2 echo "[ERROR] Merge failed. Reseting to last commit and re-applying stashed changes."
+                        >&2 echo "[ERROR] Cannot auto-merge. Reseting to last commit and re-applying stashed changes."
                         git reset --hard HEAD~1
-                        git stash apply --quiet stash@{0}
+                        git stash apply --quiet "stash@{0}"
                         >&2 echo "[ERROR] Use '-u merge-overwrite' to overwrite remote content"
                         >&2 echo "[ERROR] Use '-u merge-or-branch' to push changes to new remote branch"
                         >&2 echo "[ERROR] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
                         >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
-                        >&2 echo "[ERROR] Merge failed, nothing changed." 
+                        >&2 echo "[ERROR] Merge aborted, nothing changed." 
                         exit 2
                     fi
                 else
@@ -578,7 +605,7 @@ while getopts "${optstring}" arg; do
                 cd "$folder"
                 nb_stash_to_keep=${OPTARG}
                 if [[ nb_stash_to_keep -ge 0 ]]; then
-                    tail_n_arg=$(( ${nb_stash_to_keep} + 1))
+                    tail_n_arg="$((nb_stash_to_keep + 1))"
                     stashes=$(git stash list | awk -F ':' '{print$1}' | tail -n+${tail_n_arg})
                     if [[ -n "${stashes}" ]]; then
                         oldest_stash=$(git stash list | grep "stash@{${nb_stash_to_keep}}")

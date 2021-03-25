@@ -51,6 +51,7 @@ function teardown {
   rm -rf $HERE/test-autogit
   rm -rf $HERE/testing-1
   rm -rf $HERE/testing-2
+  rm -rf $HERE/new-remote
 }
 
 @test "Test simple pull" {
@@ -101,6 +102,109 @@ function teardown {
   readme2=`cat $HERE/testing-2/test-autogit/README.md`
 
   # Test merge ok
+  assert [ "$readme1" = "$readme2" ]
+
+}
+
+@test "Test switch branches" {
+  # Test -b flag
+  
+  # generate 10 new branches in testing repo 1
+  for i in {1..10}; do
+      # Writing a line to readme file 1
+      echo "New line $i in readme" >> $HERE/testing-1/test-autogit/README.md
+      run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge 
+      echo $output
+      assert_success
+      # create a new branch
+      run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -b "branch$i"
+      echo $output
+      assert_success
+  done
+  
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -b branch4
+  echo $output
+  assert_success
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -b branch4
+  echo $output
+  assert_success
+
+  readme1_branch4=`cat $HERE/testing-1/test-autogit/README.md`
+  readme2_branch4=`cat $HERE/testing-2/test-autogit/README.md`
+  
+  assert [ "$readme1_branch4" = "$readme2_branch4" ]
+
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -b branch9
+  echo $output
+  assert_success
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -b branch9
+  echo $output
+  assert_success
+
+  readme1_branch9=`cat $HERE/testing-1/test-autogit/README.md`
+  readme2_branch9=`cat $HERE/testing-2/test-autogit/README.md`
+  
+  assert [ "$readme1_branch9" = "$readme2_branch9" ]
+  
+}
+
+@test "Test multiple remote" {
+  # Creating a new  'fork'
+  mkdir new-remote
+  cd new-remote
+  git clone $HERE/test-autogit.git --bare
+
+  # adding the remote to the local repos
+  cd $HERE/testing-1/test-autogit
+  git remote add new $HERE/new-remote/test-autogit.git
+  cd $HERE/testing-2/test-autogit
+  git remote add new $HERE/new-remote/test-autogit.git
+  cd $HERE
+
+  readme1_init=`cat $HERE/testing-1/test-autogit/README.md`
+
+  # Switch to new branch
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -x new -b newb
+  echo $output
+  
+  # Test status ok
+  assert_success
+
+  # Writing a second line to readme file 2
+  echo "Second line to file" >> $HERE/testing-2/test-autogit/README.md
+  
+  # Run autogit on repo 2 with new remote, push to branch newb
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge -x new
+  echo $output
+  
+  # Test status ok
+  assert_success
+
+  # Run autogit on repo 1 with origin remote
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge -x origin -b newb
+  echo $output
+
+  # Test status ok
+  assert_success
+
+  readme1=`cat $HERE/testing-1/test-autogit/README.md`
+  readme2=`cat $HERE/testing-2/test-autogit/README.md`
+
+  # Test that remote origin do not contained the infos, since it was push to new remote
+  assert [ "$readme1" != "$readme2" ]
+  assert [ "$readme1_init" = "$readme1" ]
+
+  # Run autogit on repo 1 with new remote
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge -x new -b newb
+  echo $output
+
+  # Test status ok
+  assert_success
+
+  readme1=`cat $HERE/testing-1/test-autogit/README.md`
+  readme2=`cat $HERE/testing-2/test-autogit/README.md`
+
+  # Test merge OK
   assert [ "$readme1" = "$readme2" ]
 
 }
@@ -407,7 +511,8 @@ function teardown {
 }
 
 @test "Test read-only" {
-  # Tests that no commit get pushed with -o option
+  # Tests that no commit or new branches  gets pushed with -o option
+  
   # Writing a first line to readme file 1
   echo "New file in repository" > $HERE/testing-1/test-autogit/new_file.md
 
@@ -420,7 +525,7 @@ function teardown {
   # Test status ok
   assert_success
 
-  # Run autogit on repo 2, will pull new file
+  # Run autogit on repo 2, will pull new file only, merge with local copy BUT do no push
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge -o
   echo $output
   # Test status ok
@@ -445,7 +550,34 @@ function teardown {
   # See that the readme is not updated cause of read-only
   assert [ "$readme1_before_merge" = "$readme1_after_merge" ]
 
-  
+  # create a new branch on repo2
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -o -b new_branch_42
+  echo $output
+  # Test status ok
+  assert_success
+  assert_output --partial '[INFO] Creating a new branch new_branch_42'
+
+  # try to checkout the new branch on repo1
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -o -b new_branch_42
+  echo $output
+  # Test status ok
+  assert_success
+  assert_output --partial '[INFO] Creating a new branch new_branch_42'
+
+  # create a new branch on repo2
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -b new_branch_43
+  echo $output
+  # Test status ok
+  assert_success
+  assert_output --partial '[INFO] Creating a new branch new_branch_43'
+
+  # checkout the new branch on repo1
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge -o -b new_branch_43
+  echo $output
+  # Test status ok
+  assert_success
+  assert_output --partial '[INFO] Checking out remote branch new_branch_43'
+
 }
 
 @test "Test repo init" {
@@ -498,7 +630,8 @@ function teardown {
   
 }
 
-@test "Test merge-overwrite fails because of wrong manual work then merge-or-branch success" {
+
+@test "Test merge-overwrite fails because of manual commit on repo then merge-or-branch success" {
 
   # Commit some changes on repo 2 
   echo "Some comments in readme" >> $HERE/testing-2/test-autogit/README.md
@@ -507,15 +640,15 @@ function teardown {
   # Test status ok
   assert_success
 
-  # Silumate wrong manual local work on the repo 1
-  # It's wrong because branch is in a conflict and not beeing addressed by merging with remote branch manually!
+  # Silumate manual local work on the repo 1: calling 'git commit' only.
+  # It's problematic because the branch is in a conflict and not beeing addressed by merging with remote branch manually!
   cd $HERE/testing-1/test-autogit
   echo -e "Replace the content with updated version all in one. \nLike a manual upgrade of config files or something..." > README.md
   git commit -a -m "Important update"
   git status
   cd $HERE
 
-  # Simulate normal work on repo 1, then call autogit
+  # Simulate normal/automated work on repo 1, then call autogit
   echo "Some important comments in readme" >> $HERE/testing-1/test-autogit/README.md
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
   echo $output
@@ -527,7 +660,8 @@ function teardown {
   # Try with merge-overwrite
   run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge-overwrite
   echo $output
-  # Test status merge failed
+  # Test status merge failed because '-u merge-overwrite' only tries to look one 
+  # commit behind, and if that commit is also in conflict with remote, then it fails. 
   assert_failure 2
 
   readme1_after_merge_overwrite=`cat $HERE/testing-1/test-autogit/README.md`
@@ -551,9 +685,10 @@ function teardown {
   branch=`git branch | grep "*" | awk -F ' ' '{print$2}'`
   cd $HERE
 
-  # Checkout the new branch and refresh changes, nedd to use merge-or-stash to discard initial commit
-  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge-or-stash -b ${branch}
+  # Checkout the new branch on the other working copy just to make sure
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -b ${branch}
   echo $output
+  assert_success
 
   readme2_after_merge=`cat $HERE/testing-2/test-autogit/README.md`
 
