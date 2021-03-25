@@ -352,7 +352,11 @@ while getopts "${optstring}" arg; do
                         if [ -n "$(echo ${remote_branches} | grep ${newbranch})" ]; then
                             echo "[INFO] Checking out remote branch ${newbranch}"
                             git_command git fetch --quiet "${git_remote}" "${newbranch}:${newbranch}"
-                            git_command git branch -u "${git_remote}/${newbranch}" "$newbranch"
+                            if ! git branch -u "${git_remote}/${newbranch}" "$newbranch"
+                            then
+                                # Older versions of git (1.7)
+                                git branch --set-upstream "$newbranch" "${git_remote}/${newbranch}"
+                            fi
                             git checkout "${newbranch}"
                             continue
                         fi
