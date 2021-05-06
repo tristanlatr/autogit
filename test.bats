@@ -54,7 +54,7 @@ function teardown {
   rm -rf $HERE/new-remote
 }
 
-@test "Test simple pull" {
+@test "Test simple pull with merge strategy" {
 
   # Writing and pushing a second line to readme file 1
   cd $HERE/testing-1/test-autogit
@@ -104,6 +104,81 @@ function teardown {
   # Test merge ok
   assert [ "$readme1" = "$readme2" ]
 
+}
+
+@test "Test pull strategy" {
+
+  # Writing a first line to readme file 1
+  echo "New file in repository" > $HERE/testing-1/test-autogit/new_file.md
+
+  # Writing a second line to readme file 2
+  echo "New line in readme" >> $HERE/testing-2/test-autogit/README.md
+
+  # Run autogit on repo 1, with add untracked flag
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge -a
+  echo $output
+  # Test status ok
+  assert_success
+
+  # Run autogit on repo 2, will pull new file
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u pull
+  echo $output
+  # Test status ok
+  assert_success
+
+  new_file1=`cat $HERE/testing-1/test-autogit/new_file.md`
+  new_file2=`cat $HERE/testing-2/test-autogit/new_file.md`
+
+  # Test pull ok
+  assert [ "$new_file1" = "$new_file2" ]
+
+  readme1_before_merge=`cat $HERE/testing-1/test-autogit/README.md`
+
+  # Run autogit on repo 1 to update readme, shoud not do anything since data has not been pushed
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
+  # Test status ok
+  assert_success
+
+  readme1=`cat $HERE/testing-1/test-autogit/README.md`
+
+  # Test that the merge did not pull any data
+  assert [ "$readme1" = "$readme1_before_merge" ]
+
+}
+
+@test "Test conflicts with pull strategy" {
+  # Writing a second line to readme file 1
+  echo "New line in readme" >> $HERE/testing-1/test-autogit/README.md
+  readme1_before_merge=`cat $HERE/testing-1/test-autogit/README.md`
+  # Run autogit on repo 1, to push changes
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u merge
+  echo $output
+  # Test status ok
+  assert_success
+
+  # Writing a second line to readme file 2
+  echo "New conflicting line in readme" >> $HERE/testing-2/test-autogit/README.md
+
+  readme2_before_merge=`cat $HERE/testing-2/test-autogit/README.md`
+
+  # Run autogit on repo 2. will fail and roll back to previous state
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u pull
+  echo $output
+  # Test status merge failed with exit code 2
+  assert_failure 2
+
+  readme2_after_merge=`cat $HERE/testing-2/test-autogit/README.md`
+  # Test merge rolled back ok
+  assert [ "$readme2_before_merge" = "$readme2_after_merge" ]
+
+  # Run autogit on repo 1, should not change anything
+  run $HERE/autogit.sh -r $HERE/testing-1/test-autogit -u pull
+  echo $output
+  readme1_after_merge=`cat $HERE/testing-1/test-autogit/README.md`
+
+  # Test readme files didn't change
+  assert [ "$readme1_after_merge" = "$readme1_before_merge" ]
 }
 
 @test "Test switch branches" {

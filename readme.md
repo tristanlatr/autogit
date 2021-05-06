@@ -18,8 +18,9 @@ Principal options:
 
 `-r <Path>,[<Path>...]`  Path to managed repository, can be multiple comma separated. Make sure all repositories exists. Required.  
 
-`-u <Merge strategy>`   Update the current branch from and to upstream with a defined strategy. This feature supports multiple repo values. 95% of the time, you want to use `-u merge`. 
+`-u <Merge strategy>`   Update the current branch from and to upstream with a defined strategy. This feature supports multiple repo values. 95% of the time, you want to use `-u merge` or `-u pull`.
   - `merge` -> **Restore original state if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll-back changes leaving the repo in the same state as before calling the script. Exit with code `2` if merge failed.
+  - `pull` -> **Pulls only, restore original state if conflicts**. Save changes as stash (if any) and pull. Do not commit and push local changes. If pull fails, roll-back changes leaving the repo in the same state as before calling the script. Exit with code `2` if merge failed.
   - `merge-or-branch` -> **Create a new remote branch if conflicts**. Save changes as stash (if-any), commit, pull and push, if pull fails, create a new branch and push changes to remote **leaving the repository in a new branch**. 
   - `merge-overwrite` -> **Try to overwrite with local changes if conflicts**. Save changes as stash (if any), commit, pull and push. If pull fails, roll back changes, pull and re-apply saved changes by accepting only local changes (overwrite), commit and push to remote. Warning, the overwrite will fail if previous commit is also in conflict with remote (reset merge and exit with code `2`).
   - `merge-or-stash` -> **Keep remote changes if conflicts**. Save changes as stash (if-any), commit pull and push, if pull fails, revert commit and pull (your changes will be saved as git stash). If there is a conflict, no local changes will be merged with remote at all - everything will be in the stash.  

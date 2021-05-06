@@ -39,7 +39,7 @@ set -euo pipefail
 IFS=$'\n\t,'
 
 # Script version
-version='1.4'
+version='1.5'
 
 # SCRIPT CONFIG: Configurable with options -r <> [-k <>] [-c <>] [-a] [-m <>] [-f <>] [-q] [-o] [-x <>]
 # You can set default values here
@@ -391,7 +391,7 @@ while getopts "${optstring}" arg; do
         u)
             # Check if strategy string valid
             strategy=${OPTARG}
-            if [[ ! "${strategy}" = "merge" ]] && [[ ! "${strategy}" = "merge-overwrite" ]] && [[ ! "${strategy}" = "merge-or-branch" ]] && [[ ! "${strategy}" = "merge-or-stash" ]] && [[ ! "${strategy}" = "merge-or-fail" ]] && [[ ! "${strategy}" = "stash" ]]; then
+            if [[ ! "${strategy}" = "merge" ]] && [[ ! "${strategy}" = "pull" ]] && [[ ! "${strategy}" = "merge-overwrite" ]] && [[ ! "${strategy}" = "merge-or-branch" ]] && [[ ! "${strategy}" = "merge-or-stash" ]] && [[ ! "${strategy}" = "merge-or-fail" ]] && [[ ! "${strategy}" = "stash" ]]; then
                 >&2 echo -e "[ERROR] Unkwown strategy ${strategy}. See '$0 -h' for help" 
                 exit 3
             fi
@@ -452,18 +452,20 @@ while getopts "${optstring}" arg; do
                         fi
 
                         # Apply changes if merge strategy is not stash and the stash exists
-                        if [[ "${strategy}" =~ "merge" ]]; then
+                        if [[ ! "${strategy}" = "stash" ]]; then
                             if [[ -n $(git stash list | grep "${date_time_str}") ]]; then
-                                echo "[INFO] Applying stash in order to merge"
+                                echo "[INFO] Re-applying stash"
                                 git stash apply --quiet "stash@{0}"
                             else
-                                >&2 echo "[WARNING] Your changes are not saved as stash " 
+                                >&2 echo "[WARNING] Your changes are not saved as stash" 
                                 >&2 echo "[WARNING] Hit Ctrl+C now to cancel, or wait 5 seconds"
                                 sleep 5
                             fi
-                            
-                            commit_local_changes
-                            committed_changes=0
+                            # Only commit if strategy is to merge. 
+                            if [[ "${strategy}" =~ "merge" ]]; then
+                                commit_local_changes
+                                committed_changes=0
+                            fi
                         fi
                     else
                         echo "[INFO] No local changes in tracked files"
@@ -555,7 +557,20 @@ while getopts "${optstring}" arg; do
                         exit 2
                     
                     #########################################################
-                    #     default merge conflict resolution strategy   
+                    #     pull conflict resolution strategy   
+                    #########################################################
+                    elif [[ "${strategy}" =~ "pull" ]]; then
+                        >&2 echo "[ERROR] Cannot auto-merge."
+                        >&2 echo "[ERROR] Use '-u merge-overwrite' to overwrite remote content"
+                        >&2 echo "[ERROR] Use '-u merge-or-branch' to push changes to new remote branch"
+                        >&2 echo "[ERROR] Use '-u merge-or-stash' to keep remote changes (stash local changes)"
+                        >&2 echo "[ERROR] Use '-t <Commit SHA>' to hard reset to previous commit" 
+                        git reset --merge
+                        >&2 echo "[ERROR] Merge aborted, nothing should have changed"
+                        exit 2
+                    
+                    #########################################################
+                    #     default merge conflict resolution strategy
                     #########################################################
                     else
                         >&2 echo "[ERROR] Cannot auto-merge. Reseting to last commit and re-applying stashed changes."
@@ -569,11 +584,11 @@ while getopts "${optstring}" arg; do
                         exit 2
                     fi
                 else
-                    echo "[INFO] Merge success"
+                    echo "[INFO] Pull success"
                 fi
 
                 #########################################################
-                #       Push changes to current branch   
+                #       Push changes to current branch if strategy is to merge  
                 #########################################################
                 branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
 
