@@ -771,3 +771,18 @@ function teardown {
   assert [ "$readme1_before_merge_overwrite" = "$readme2_after_merge" ]
 
 }
+
+@test "Test show information" {
+
+  # Commit some changes on repo 2 
+  echo "Some comments in readme" >> $HERE/testing-2/test-autogit/README.md
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -u merge -m "Commentsblabla"
+  echo $output
+  # Test status ok
+  assert_success
+
+  # Show information
+  run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -i 5
+  assert_success
+  assert_output --partial "Commentsblabla (autogit"
+}
