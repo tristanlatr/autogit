@@ -657,7 +657,7 @@ while getopts "${optstring}" arg; do
                 echo "[INFO] Tracked files ${folder}"
                 git ls-tree --full-tree -r --name-only HEAD
                 echo "[INFO] Last ${OPTARG} commits activity ${folder}"
-                git log --graph --date=relative --pretty=tformat:'%Cred%h%Creset%d%s%Cgreen(%an %ad)%Creset' -n "${OPTARG}"                
+                git log --graph --date=relative --pretty=tformat:'%Cred%h%Creset%d %s%Cgreen(%an %ad)%Creset' -n "${OPTARG}"                
                 echo "[INFO] Git status ${folder}"
                 git status
                 cd "${init_folder}"
