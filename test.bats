@@ -784,5 +784,5 @@ function teardown {
   # Show information
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -i 5
   assert_success
-  assert_output --partial "Commentsblabla (autogit"
+  assert_output --partial "Commentsblabla"
 }
