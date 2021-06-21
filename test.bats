@@ -785,4 +785,8 @@ function teardown {
   run $HERE/autogit.sh -r $HERE/testing-2/test-autogit -i 5
   assert_success
   assert_output --partial "Commentsblabla"
+  refute_output --partial "Cblack"
+  refute_output --partial "Cred"
+  refute_output --partial "Cgreen"
+  refute_output --partial "Creset"
 }
