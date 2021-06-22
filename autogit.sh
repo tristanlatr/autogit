@@ -255,6 +255,7 @@ while getopts "${optstring}" arg; do
             read -ra repositories <<< "${OPTARG}"
 
             for folder in "${repositories[@]}"; do
+                folder="${folder/#\~/$HOME}" # expand ~
                 # Check repo exist and contains .git folder
                 if [[ -d "$folder" ]]; then
                     cd "$folder"
@@ -314,6 +315,7 @@ while getopts "${optstring}" arg; do
     case "${arg}" in
         t) #Reseting to previous commit
             for folder in "${repositories[@]}"; do
+                folder="${folder/#\~/$HOME}" # expand ~
                 echo "[INFO] Reseting ${folder} to ${OPTARG} commit"
                 cd "$folder"
                 git reset --hard "${OPTARG}"
@@ -335,6 +337,7 @@ while getopts "${optstring}" arg; do
         b) #Checkout
             newbranch="${OPTARG}"
             for folder in "${repositories[@]}"; do
+                folder="${folder/#\~/$HOME}" # expand ~
                 echo "[INFO] Switching repository ${folder} on branch ${newbranch}"
                 cd "$folder"
                 branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
@@ -397,7 +400,7 @@ while getopts "${optstring}" arg; do
             fi
 
             for folder in "${repositories[@]}"; do
-                
+                folder="${folder/#\~/$HOME}" # expand ~
                 cd "$folder"
                 echo "[INFO] Updating ${folder}"
 
@@ -618,6 +621,7 @@ while getopts "${optstring}" arg; do
     case "${arg}" in
         s)
             for folder in "${repositories[@]}"; do
+                folder="${folder/#\~/$HOME}" # expand ~
                 cd "$folder"
                 nb_stash_to_keep=${OPTARG}
                 if [[ nb_stash_to_keep -ge 0 ]]; then
@@ -649,6 +653,7 @@ while getopts "${optstring}" arg; do
     case "${arg}" in
         i)
             for folder in "${repositories[@]}"; do
+                folder="${folder/#\~/$HOME}" # expand ~
                 cd "$folder"
                 echo "[INFO] Branches ${folder}"
                 git branch -a -vv
