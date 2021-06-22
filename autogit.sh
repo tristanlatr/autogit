@@ -426,7 +426,7 @@ while getopts "${optstring}" arg; do
                     if is_changes_in_tracked_files; then
                     
                         # Save stash
-                        echo "[INFO] Saving changes as a git stash \"${commit_and_stash_name}\"."
+                        echo "[INFO] Saving changes as a stash."
                         if ! git stash save "${commit_and_stash_name}"; then
                             >&2 echo "[WARNING] Unable to save stash"
                             # Get conflicting files list
@@ -454,7 +454,7 @@ while getopts "${optstring}" arg; do
                         # Apply changes if merge strategy is not stash and the stash exists
                         if [[ ! "${strategy}" = "stash" ]]; then
                             if [[ -n $(git stash list | grep "${date_time_str}") ]]; then
-                                echo "[INFO] Re-applying stash"
+                                echo "[INFO] Applying stash"
                                 git stash apply --quiet "stash@{0}"
                             else
                                 >&2 echo "[WARNING] Your changes are not saved as stash" 
@@ -477,7 +477,7 @@ while getopts "${optstring}" arg; do
                 #########################################################
                 #                       Merging changes
                 #########################################################
-                echo "[INFO] Merging remote changes"
+                echo "[INFO] Pulling changes"
                 branch=$(git rev-parse --abbrev-ref HEAD) # Figure out branch
 
                 # Like git pull --no-edits but compatible with git < 1.8
@@ -583,8 +583,6 @@ while getopts "${optstring}" arg; do
                         >&2 echo "[ERROR] Merge aborted, nothing changed." 
                         exit 2
                     fi
-                else
-                    echo "[INFO] Pull success"
                 fi
 
                 #########################################################
