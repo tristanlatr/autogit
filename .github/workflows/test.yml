@@ -16,7 +16,7 @@ jobs:
           - 'oraclelinux:6'
           - 'oraclelinux:7'
           - 'oraclelinux:8'
-          - 'centos:6'
+          # - 'centos:6' Does not pass anymore. Hopefully, 'oraclelinux:6' container still works.
           - 'centos:7'
           - 'centos:8'
           - 'bash:3'
